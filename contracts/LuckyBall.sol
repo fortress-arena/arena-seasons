@@ -3,9 +3,11 @@
  * @title LuckBall Event Contract
  * @author Atomrigs Lab
  *
+ * Supports ChainLink VRF_V2
+ * Using EIP712 signTypedData_v4 for relay signature verification
  **/
 
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.18;
 
 //import "@openzeppelin/contracts/access/Ownable.sol";
 //import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -20,7 +22,7 @@ contract LuckyBall is VRFConsumerBaseV2{
     uint private _revealGroupIds;    
     address private _owner;
     address private _operator;
-    bool public isActive = false;
+
     uint[] public ballGroups;
     address[] public addrGroups;
     uint public ballCount = 0;
@@ -34,15 +36,13 @@ contract LuckyBall is VRFConsumerBaseV2{
 
     //chainlink 
     VRFCoordinatorV2Interface COORDINATOR;
-    uint64 s_subscriptionId = 5320;
-    address vrfCoordinator = 0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed;
+    uint64 s_subscriptionId = 5320; //https://vrf.chain.link/
+    address vrfCoordinator = 0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed; //Mumbai 
     bytes32 s_keyHash = 0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f;
     uint32 callbackGasLimit = 40000;
     uint16 requestConfirmations = 3;
     uint32 numWords =  1;
     uint256 public lastRequestId;
-
-    //address linkToken = 0x326C977E6efc84E512bB9C30f76E30c160eD06FB;
 
     struct RequestStatus {
         bool exists; // whether a requestId exists        
@@ -51,7 +51,12 @@ contract LuckyBall is VRFConsumerBaseV2{
     }
     mapping(uint => RequestStatus) public s_requests; /* requestId --> requestStatus */   
     //
-    mapping(address => uint256) private _nonces;
+
+    //EIP 712 related
+    bytes32 public DOMAIN_SEPARATOR;
+    mapping (address => uint) private _nonces;
+    //
+
     mapping(uint => Season) public seasons;
     mapping(address => mapping(uint => uint[])) public userBallGroups; //user addr => seasonId => ballGroupPos
     mapping(uint => uint) public revealGroups;
@@ -80,16 +85,78 @@ contract LuckyBall is VRFConsumerBaseV2{
         _revealGroupIds++;
         _owner = msg.sender;
         _operator = msg.sender;
-        COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
+        _setDomainSeparator(); //EIP712
     }
 
+    // EIP 712 and Relay functions
     function nonces(address user) public view returns (uint256) {
         return _nonces[user];
-    }     
+    }   
+
+    function getDomainInfo() public view returns (string memory, string memory, uint, address) {
+        string memory name = "LuckyBall_Relay";
+        string memory version = "1";
+        uint chainId = block.chainid;
+        address verifyingContract = address(this);
+        return (name, version, chainId, verifyingContract);
+    }
+
+    function getRelayMessageTypes() public pure returns (string memory) {
+      string memory dataTypes = "Relay(address owner,uint256 deadline,uint256 nonce)";
+      return dataTypes;      
+    }
+
+    function _setDomainSeparator() internal {
+        string memory EIP712_DOMAIN_TYPE = "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
+        ( string memory name, string memory version, uint chainId, address verifyingContract ) = getDomainInfo();
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                keccak256(abi.encodePacked(EIP712_DOMAIN_TYPE)),
+                keccak256(abi.encodePacked(name)),
+                keccak256(abi.encodePacked(version)),
+                chainId,
+                verifyingContract
+            )
+        );
+    }
+
+    function getEIP712Hash(address _user, uint _deadline, uint _nonce) public view returns (bytes32) {
+        string memory MESSAGE_TYPE = getRelayMessageTypes();
+        bytes32 hash = keccak256(
+            abi.encodePacked(
+                "\x19\x01", // backslash is needed to escape the character
+                DOMAIN_SEPARATOR,
+                keccak256(
+                    abi.encode(
+                        keccak256(abi.encodePacked(MESSAGE_TYPE)),
+                        _user,
+                        _deadline,
+                        _nonce
+                    )
+                )
+            )
+        );
+        return hash;
+    }
+
+    function verifySig(address _user, uint _deadline, uint _nonce,  uint8 v, bytes32 r,bytes32 s) public view returns (bool) {
+        bytes32 hash = getEIP712Hash(_user, _deadline, _nonce);
+        if (v < 27) {
+          v += 27;
+        }
+        return _user == ecrecover(hash, v, r, s);
+    }
+
+    //
+
 
     function setOperator(address _newOperator) public onlyOwner returns (bool) {
         _operator = _newOperator;
         return true;
+    }
+
+    function getOperator() public view returns (address) {
+        return _operator;
     }
 
     function getCurrentSeasionId() public view returns (uint) {
@@ -130,9 +197,9 @@ contract LuckyBall is VRFConsumerBaseV2{
 
     function issueBalls(address[] calldata _tos, uint[] calldata _qty) public onlyOperators() returns (bool) {
         require(_tos.length == _qty.length, "LuckBall: address and qty counts do not match");
-        require(isSeasonActive(), "Season is not active");
+        require(isSeasonActive(), "LuckyBall: Season is not active");
         for(uint i=0; i<_tos.length; i++) {
-            require(_qty[i] > 0, "LuckBall: qty should be bigger than 0");
+            require(_qty[i] > 0, "LuckyBall: qty should be bigger than 0");
             ballCount += _qty[i];
             ballGroups.push(ballCount);
             addrGroups.push(_tos[i]);
@@ -143,6 +210,7 @@ contract LuckyBall is VRFConsumerBaseV2{
         return true;       
     }
 
+    /*
     function issueTest() public {
         address a = 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4;
         ballCount += 100;
@@ -152,6 +220,7 @@ contract LuckyBall is VRFConsumerBaseV2{
         userBallCounts[a][getCurrentSeasionId()] += 100;
         emit BallIssued(a, 100);
     }
+    */
 
     function ownerOf(uint ballId) public view returns (address) {
         if (ballId == 0) {
@@ -168,8 +237,6 @@ contract LuckyBall is VRFConsumerBaseV2{
     function generateWinningCode() internal view returns (uint) {
         return extractCode(uint(keccak256(abi.encodePacked(blockhash(block.number -1), block.timestamp))));        
     }
-
-
 
     function requestWinningBallId() public pure returns (bool) {
         return true;
@@ -273,34 +340,6 @@ contract LuckyBall is VRFConsumerBaseV2{
         return getBalls(msg.sender, getCurrentSeasionId());
     }
 
-    function getHash(
-        uint chainId,
-        address _this, 
-        address user, 
-        uint deadline,
-        uint nonce,
-        string memory method) 
-        public pure 
-        returns (bytes32) {
-
-        return keccak256(abi.encodePacked(chainId, _this, user, deadline, nonce, method));
-    }
-
-    function verifySig(address addr, bytes32 _hash, uint8 v, bytes32 r, bytes32 s) 
-        public pure 
-        returns (bool) {
-        return ecrecover(_hash, v, r, s) == addr;
-    }
-
-    function getChainId() public view returns (uint) {
-        uint chainId;
-        assembly {
-            chainId := chainid()
-        }
-        return chainId;        
-    }
-
-
     function relayRequestReveal(        
         address user,
         uint deadline,
@@ -308,22 +347,27 @@ contract LuckyBall is VRFConsumerBaseV2{
         bytes32 r,
         bytes32 s) 
         public returns (bool) {
-        
-        require (deadline >= block.timestamp, "LuckyBall: expired deadline");
 
         uint nonce = _nonces[user]++;
-        uint chainId = getChainId();
-        bytes32 _hash = getHash(
-            chainId,
-            address(this), 
-            user, 
-            deadline,
-            nonce,
-            "relayRequestReveal"
-        );
-        require (verifySig(user, _hash, v, r, s), "LuckyBall: sig does not match"); 
+        require(deadline >= block.timestamp, "LuckyBall: expired deadline");
+        require(verifySig(user, deadline, nonce, v, r, s), "LuckyBall: user sig does not match");
+        
         _requestReveal(user);
         emit RevealRequested(user);
+        return true;
+    }
+
+    function relayRequestRevealBatch(
+        address[] calldata users,
+        uint[] calldata deadlines,
+        uint8[] calldata vs,
+        bytes32[] calldata rs,
+        bytes32[] calldata ss) 
+        public returns(bool) {
+        
+        for(uint i=0; i<users.length; i++) {
+            relayRequestReveal(users[i],deadlines[i], vs[i], rs[i], ss[i]);
+        }
         return true;
     }
 
@@ -340,7 +384,7 @@ contract LuckyBall is VRFConsumerBaseV2{
         return false;
     }
 
-    function setRevealGroupSeed(uint randSeed) internal {
+    function setRevealGroupSeed(uint randSeed) private {
         revealGroupSeeds[getCurrentRevealGroupId()] = randSeed;
         emit CodeSeedRevealed(getCurrentRevealGroupId());        
         _revealGroupIds++;
