@@ -210,6 +210,11 @@ contract LuckyBall is VRFConsumerBaseV2{
         return true;       
     }
 
+    function getUserBallGroups(address addr, uint seasonId) public view returns (uint[] memory) {
+        uint[] memory myGroups = userBallGroups[addr][seasonId];
+        return myGroups;
+    }
+
     function issueTest() public onlyOperators() {
         address a = 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4;
         ballCount += 100;
@@ -257,17 +262,18 @@ contract LuckyBall is VRFConsumerBaseV2{
         uint revealGroupId = getCurrentRevealGroupId();
 
         if (myGroups.length == 0) {
-            return true;
+            return false;
         }
         uint newPos = newRevealPos[_addr];
         if (myGroups.length >= newPos) {
             for (uint i=newPos; i<myGroups.length; i++) {
                 revealGroups[myGroups[i]] = revealGroupId;
             }
-            newRevealPos[_addr] = myGroups.length+1;
+            newRevealPos[_addr] = myGroups.length;
+            return true;
         }
         emit RevealRequested(_addr);
-        return true;
+        return false;
     }
 
     function getRevealGroup(uint ballId) public view returns (uint) {
