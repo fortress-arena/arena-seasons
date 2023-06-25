@@ -210,8 +210,7 @@ contract LuckyBall is VRFConsumerBaseV2{
         return true;       
     }
 
-    /*
-    function issueTest() public {
+    function issueTest() public onlyOperators() {
         address a = 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4;
         ballCount += 100;
         ballGroups.push(ballCount);
@@ -220,7 +219,6 @@ contract LuckyBall is VRFConsumerBaseV2{
         userBallCounts[a][getCurrentSeasionId()] += 100;
         emit BallIssued(a, 100);
     }
-    */
 
     function ownerOf(uint ballId) public view returns (address) {
         if (ballId == 0) {
@@ -238,17 +236,13 @@ contract LuckyBall is VRFConsumerBaseV2{
         return extractCode(uint(keccak256(abi.encodePacked(blockhash(block.number -1), block.timestamp))));        
     }
 
-    function requestWinningBallId() public pure returns (bool) {
-        return true;
-    }
-
     function setWinningBallId(uint winner) public onlyOperators() returns (bool) {
         seasons[getCurrentSeasionId()].winningBallId = winner;
         return true;
         
     }
 
-    function extractCode(uint n) public pure returns (uint) {
+    function extractCode(uint n) internal pure returns (uint) {
         uint r = n % 1000000;
         if (r < 100000) { r += 100000; }
         return r;

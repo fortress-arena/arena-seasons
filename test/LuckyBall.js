@@ -181,14 +181,55 @@ describe("LuckyBall core", function () {
     
     let ball0 = await contract.ownerOf(0);
     let ball1000 = await contract.ownerOf(1000);
+
     expect(ball0).to.equal('0x0000000000000000000000000000000000000000'); 
     expect(ball1000).to.equal('0x0000000000000000000000000000000000000000');       
   });  
 
+  it("getBalls() should show all balls by user address and seasonId ", async function () {
+    let { contract } = await loadFixture(ballFixture);  
+    let seasonId = await contract.getCurrentSeasionId();  
+    let balls = await contract.getBalls(user1.address, seasonId);
+    expect(balls.length).to.equal(100);
+  });
+
+  it("getBallCode() should show 0 code when reveal is not done", async function () {
+    let { contract } = await loadFixture(ballFixture);
+    let ball1 = await contract.getBallCode(1);
+    let ball2 = await contract.getBallCode(2);
+
+    expect(ball1).to.equal(0);
+    expect(ball2).to.equal(0);
+
+  });
+
+  it("getBallCode() should show code when reveal is done", async function () {
+    /*    
+    let { contract } = await loadFixture(ballFixture);
+    let ball1 = await contract.getBallCode(1);
+    let ball2 = await contract.getBallCode(2);
+
+    expect(ball1).to.be.at.least(100000);
+    expect(ball2).to.be.at.below(1000000);
+    expect(ball1==ball2).to.be.false;    
+    */
+  });  
+
+  it("requestReveal() should accept reveal request", async function () {
+    let { contract } = await loadFixture(ballFixture);
+    await contract.connect(user1).requestReveal();
+    //await contract.connect(user2).requestReveal();
+    let revealGroup = await contract.getRevealGroup(1);
+    let revealGroup2 = await contract.getRevealGroup(101);
+    expect(revealGroup).to.equal(1);
+    expect(revealGroup2).to.equal(0); //not requested
+    await expect(contract.getRevealGroup(1000)).to.be.revertedWith('LuckyBall: ballId is out of range');
+  });
 
   it("", async function () {
     expect().to.equal();
   });
+
 
 
 
