@@ -20,56 +20,6 @@ function splitSig(sig) {
   return {r: "0x" + sig.slice(0, 64), s: "0x" + sig.slice(64, 128), v: parseInt(sig.slice(128, 130), 16)};
 }
 
-describe("EIP712 signature verification", function () {
-
-  let LuckyBallContract;
-  let contract;
-  let owner;
-  let user1;
-  let user2;
- 
-  beforeEach(async function () {
-    LuckyBallContract = await ethers.getContractFactory("LuckyBall");
-    [owner, user1, user2] = await ethers.getSigners();
-
-    contract = await LuckyBallContract.connect(owner).deploy();
-    await contract.waitForDeployment();
-    
-  });
-
-  async function sigFixture() {
-
-    let [ name, version, chainId, verifyingContract ] = await contract.getDomainInfo();
-    chainId = parseInt(chainId);
-    let deadline = Math.floor(Date.now() / 1000) + 60*60*24; //1day
-    let nonce = parseInt(await (contract.nonces(user1.address)));
-    let domain = { name, version, chainId, verifyingContract };
-    let types = { Relay: [{name: 'owner', type: 'address'},
-                          {name: 'deadline', type: 'uint256'},
-                          {name: 'nonce', type: 'uint256'} ]};
-    let relay = { owner: user1.address, deadline, nonce};
-    let sig = splitSig(await user1.signTypedData(domain, types, relay));
-    console.log(domain);
-    console.log(types);
-    console.log(relay);
-    console.log(sig);
-    return {deadline, nonce, domain, types, relay, sig, contract};
-  }
-
-  it("EIP712 signature should pass", async function () {
-    let { deadline, nonce, sig, contract } = await loadFixture(sigFixture);
-    let verificationResult = await contract.verifySig(user1.address, deadline, nonce, sig.v, sig.r, sig.s);
-    expect(verificationResult).to.be.true;
-  });  
-
-  it("EIP712 signature should pass", async function () {
-    let { deadline, nonce, sig, contract } = await loadFixture(sigFixture);
-    let verificationResult2 = await contract.verifySig(user2.address, deadline, nonce, sig.v, sig.r, sig.s);
-    expect(verificationResult2).to.be.false;
-  });    
-
-});
-
 describe("LuckyBall core", function () {
 
   let LuckyBallContract;
@@ -94,6 +44,37 @@ describe("LuckyBall core", function () {
     await contract.connect(operator).issueBalls([user1.address, user2.address],[100,200]);
     return {contract};
   }
+
+  async function sigFixture() {
+    let [ name, version, chainId, verifyingContract ] = await contract.getDomainInfo();
+    chainId = parseInt(chainId);
+    let deadline = Math.floor(Date.now() / 1000) + 60*60*24; //1day
+    let nonce = parseInt(await (contract.nonces(user1.address)));
+    let domain = { name, version, chainId, verifyingContract };
+    let types = { Relay: [{name: 'owner', type: 'address'},
+                          {name: 'deadline', type: 'uint256'},
+                          {name: 'nonce', type: 'uint256'} ]};
+    let relay = { owner: user1.address, deadline, nonce};
+    let sig = splitSig(await user1.signTypedData(domain, types, relay));
+    console.log(domain);
+    console.log(types);
+    console.log(relay);
+    console.log(sig);
+    return {deadline, nonce, domain, types, relay, sig, contract};
+  }
+
+  it("EIP712 signature should pass", async function () {
+    let { deadline, nonce, sig, contract } = await loadFixture(sigFixture);
+    let verificationResult = await contract.verifySig(user1.address, deadline, nonce, sig.v, sig.r, sig.s);
+    expect(verificationResult).to.be.true;
+  });  
+
+  it("EIP712 signature should fail with wrong address", async function () {
+    let { deadline, nonce, sig, contract } = await loadFixture(sigFixture);
+    let verificationResult2 = await contract.verifySig(user2.address, deadline, nonce, sig.v, sig.r, sig.s);
+    expect(verificationResult2).to.be.false;
+  });  
+
 
   it("setOperator() should set a new operator", async function () {
 
@@ -226,13 +207,42 @@ describe("LuckyBall core", function () {
     await expect(contract.getRevealGroup(1000)).to.be.revertedWith('LuckyBall: ballId is out of range');
   });
 
+  it("requestReveal() should accept multiple reveal request", async function () {
+    let { contract } = await loadFixture(ballFixture);
+    await contract.connect(user1).requestReveal();
+    let revealGroup = await contract.getRevealGroup(1);
+    expect(revealGroup).to.equal(1);
+
+    await contract.connect(operator).issueBalls([user1.address],[100]);
+
+    let revealGroup400 = await contract.getRevealGroup(400);
+    expect(revealGroup400).to.equal(0);
+    
+    await contract.connect(user1).requestReveal();
+    //let userBallGroups = await contract.getUserBallGroups(user1.address, 1);
+    //console.log(await contract.ballCount());
+    //console.log(await contract.newRevealPos(user1.address));
+    //console.log(userBallGroups);
+    let revealGroup400_again = await contract.getRevealGroup(400);
+    expect(revealGroup400_again).to.equal(1);
+  });  
+
+  it("relayRequestReveal() should relay with sig verification", async function () {
+    let { deadline, nonce, sig, contract } = await loadFixture(sigFixture);
+    await contract.connect(owner).startSeason();
+    await contract.connect(owner).issueBalls([user1.address],[100]);
+    expect(await contract.getRevealGroup(1)).to.equal(0);
+    await contract.connect(user2).relayRequestReveal(
+        user1.address, 
+        deadline,
+        sig.v,
+        sig.r,
+        sig.s);
+    expect(await contract.getRevealGroup(1)).to.equal(1);
+  });
+
   it("", async function () {
     expect().to.equal();
   });
-
-
-
-
-
 
 });
