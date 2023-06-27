@@ -110,7 +110,9 @@ describe("LuckyBall core", function () {
 
   it("startSeason() should be executable by owner or operator", async function () {
     await contract.connect(owner).setOperator(operator.address);
-    await contract.connect(operator).startSeason();
+    await expect(contract.connect(operator).startSeason())
+    .to.emit(contract, 'SeasonStarted');
+
     let seasonId = await contract.getCurrentSeasionId();
     console.log(seasonId);
     expect(seasonId).to.equal(1);
@@ -121,13 +123,13 @@ describe("LuckyBall core", function () {
     
   });
   
-  it("Season object should hav startBallGroupPos and WinningCode ", async function() {
+  it("Season object should hav startBallId and WinningCode ", async function() {
     await contract.connect(owner).setOperator(operator.address);
     await contract.connect(operator).startSeason();  
     let seasonId = await contract.getCurrentSeasionId();
     let season = await contract.seasons(seasonId);
     //console.log(season); 
-    expect(season.slice(0,4)).to.have.ordered.members([ 1n, 0n, 0n, 0n]);
+    expect(season.slice(0,4)).to.have.ordered.members([ 1n, 1n, 0n, 0n]);
     expect(season[4]).to.be.a('bigint'); //winningCode
     expect(season[4]).to.be.at.least(100000);
     expect(season[4]).to.be.at.below(1000000);
@@ -217,7 +219,11 @@ describe("LuckyBall core", function () {
 
   it("requestReveal() should accept reveal request", async function () {
     let { contract } = await loadFixture(ballFixture);
-    await contract.connect(user1).requestReveal();
+    let seasonId = await contract.getCurrentSeasionId();    
+    await expect(contract.connect(user1).requestReveal())
+    .to.emit(contract, "RevealRequested")
+    .withArgs(seasonId, user1.address);
+
     //await contract.connect(user2).requestReveal();
     let revealGroup = await contract.getRevealGroup(1);
     let revealGroup2 = await contract.getRevealGroup(101);

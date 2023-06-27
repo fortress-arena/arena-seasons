@@ -17,9 +17,9 @@ import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 
 contract LuckyBall is VRFConsumerBaseV2{
 
-    uint private _ballIds;
-    uint private _seasonIds;
-    uint private _revealGroupIds;    
+    uint private _ballId;
+    uint private _seasonId;
+    uint private _revealGroupId;    
     address private _owner;
     address private _operator;
 
@@ -29,8 +29,8 @@ contract LuckyBall is VRFConsumerBaseV2{
     bool public revealNeeded;
     struct Season {
         uint seasonId;
-        uint startBallGroupPos;
-        uint endBallGroupPos;
+        uint startBallId;
+        uint endBallId;
         uint winningBallId;
         uint winningCode;
     }
@@ -65,12 +65,12 @@ contract LuckyBall is VRFConsumerBaseV2{
     mapping(address => uint) public newRevealPos;
     mapping(address => mapping(uint => uint)) public userBallCounts; //userAddr => seasonId => count
 
-    event BallIssued(address recipient, uint qty);
-    event RevealRequested(address requestor);
-    event SeasonStarted();
-    event SeasonEnded();
-    event CodeSeedRevealed(uint revealGroup);
-    event WinnerPicked(uint season, uint ballId);
+    event BallIssued(uint seasonId, address indexed recipient, uint qty, uint lastBallId);
+    event RevealRequested(uint seasonId, address indexed requestor);
+    event SeasonStarted(uint seasonId);
+    event SeasonEnded(uint seasonId);
+    event CodeSeedRevealed(uint seasonId, uint revealGroup);
+    event WinnerPicked(uint indexed seasonId, uint ballId);
 
     modifier onlyOperators() {
         require(_operator == msg.sender || _owner == msg.sender, "LuckyBall: caller is not the operator address!");
@@ -89,11 +89,10 @@ contract LuckyBall is VRFConsumerBaseV2{
         COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
         s_keyHash = keyHash;
         s_subscriptionId = subscriptionId;
-        _revealGroupIds++;
+        _revealGroupId++;
         _owner = msg.sender;
         _operator = msg.sender;
         _setDomainSeparator(); //EIP712
-
     }
 
     // EIP 712 and Relay functions
@@ -167,7 +166,7 @@ contract LuckyBall is VRFConsumerBaseV2{
     }
 
     function getCurrentSeasionId() public view returns (uint) {
-        return _seasonIds;
+        return _seasonId;
     }
 
     function getCurrentBallGroupPos() public view returns (uint) {
@@ -175,28 +174,34 @@ contract LuckyBall is VRFConsumerBaseV2{
     }
 
     function getCurrentRevealGroupId() public view returns (uint) {
-        return _revealGroupIds;
+        return _revealGroupId;
     }     
 
     function startSeason() external onlyOperators() returns (uint) {
-        _seasonIds++;
-        uint seasonId = getCurrentSeasionId();
-        seasons[seasonId] = 
-                Season(seasonId, 
-                        getCurrentBallGroupPos(), 
+        _seasonId++;
+        uint start;
+        if (ballGroups.length == 0) {
+            start = 1;    
+        } else {
+            start = ballGroups[getCurrentBallGroupPos()-1]+1;
+        }    
+
+        seasons[_seasonId] = 
+                Season(_seasonId, 
+                        start, 
                         uint(0), 
                         uint(0),
                         generateWinningCode());
 
-        emit SeasonStarted();
-        return seasonId;
+        emit SeasonStarted(_seasonId);
+        return _seasonId;
     }
 
     function isSeasonActive() public view returns (bool) {
-        if(seasons[getCurrentSeasionId()].winningBallId > 0) {
+        if(seasons[_seasonId].winningBallId > 0) {
             return false;
         }
-        if (getCurrentSeasionId() == uint(0)) {
+        if (_seasonId == uint(0)) {
             return false;
         }
         return true;
@@ -210,9 +215,9 @@ contract LuckyBall is VRFConsumerBaseV2{
             ballCount += _qty[i];
             ballGroups.push(ballCount);
             addrGroups.push(_tos[i]);
-            userBallGroups[_tos[i]][getCurrentSeasionId()].push(ballGroups.length-1);
-            userBallCounts[_tos[i]][getCurrentSeasionId()] += _qty[i];
-            emit BallIssued(_tos[i], _qty[i]);
+            userBallGroups[_tos[i]][_seasonId].push(ballGroups.length-1);
+            userBallCounts[_tos[i]][_seasonId] += _qty[i];
+            emit BallIssued(_seasonId, _tos[i], _qty[i], ballCount);
         } 
         return true;       
     }
@@ -267,24 +272,19 @@ contract LuckyBall is VRFConsumerBaseV2{
     }
 
     function _requestReveal(address _addr) internal returns (bool) {
-        uint[] memory myGroups = userBallGroups[_addr][getCurrentSeasionId()];
-        uint revealGroupId = getCurrentRevealGroupId();
-
-        if (myGroups.length == 0) {
-            return false;
-        }
+        uint[] memory myGroups = userBallGroups[_addr][_seasonId];
+        uint revealGroupId = _revealGroupId;
         uint newPos = newRevealPos[_addr];
-        if (myGroups.length >= newPos) {
-            for (uint i=newPos; i<myGroups.length; i++) {
-                revealGroups[myGroups[i]] = revealGroupId;
-            }
-            newRevealPos[_addr] = myGroups.length;
-            if (!revealNeeded) {
-                revealNeeded = true;
-            }
-            return true;
+        require(myGroups.length > 0, "LuckyBall: No balls to reveal");
+        require(myGroups.length >= newPos, "LuckyBall: No new balls to reveal");
+        for (uint i=newPos; i<myGroups.length; i++) {
+            revealGroups[myGroups[i]] = revealGroupId;
+        }            
+        newRevealPos[_addr] = myGroups.length;
+        if (!revealNeeded) {
+            revealNeeded = true;
         }
-        emit RevealRequested(_addr);
+        emit RevealRequested(_seasonId, _addr);
         return false;
     }
 
@@ -321,20 +321,20 @@ contract LuckyBall is VRFConsumerBaseV2{
         return uint(0);
     }
 
-    function getBalls(address _addr, uint _seasonId) public view returns (uint[] memory) {
-        uint[] memory myGroups = userBallGroups[_addr][_seasonId];
-        Season memory season = seasons[_seasonId];
-        uint seasonTopPos = season.endBallGroupPos;
-        uint[] memory ballIds = new uint[](userBallCounts[_addr][_seasonId]);
+    function getBalls(address addr, uint seasonId) public view returns (uint[] memory) {
+        uint[] memory myGroups = userBallGroups[addr][seasonId];
+        //Season memory season = seasons[seasonId];
+        //uint seasonEndBallId = season.endBallId;
+        uint[] memory ballIds = new uint[](userBallCounts[addr][seasonId]);
 
-        if (seasonTopPos == uint(0)) {
-            seasonTopPos = ballGroups.length-1;
-        }
+        //if (seasonTopPos == uint(0)) {
+        //    seasonTopPos = ballGroups.length-1;
+        //}
         uint pos = 0;
         for (uint i=0; i < myGroups.length; i++) {
             uint end = ballGroups[myGroups[i]];
             uint start;
-            if (myGroups[i] == uint(0)) {
+            if (myGroups[i] == 0) {
                 start = 1;    
             } else {
                 start = ballGroups[myGroups[i] - 1] + 1;
@@ -343,13 +343,12 @@ contract LuckyBall is VRFConsumerBaseV2{
                 ballIds[pos] = j;
                 pos++;
             }                           
-
         }
         return ballIds;
     }
 
     function getBalls() public view returns(uint[] memory) {
-        return getBalls(msg.sender, getCurrentSeasionId());
+        return getBalls(msg.sender, _seasonId);
     }
 
     function relayRequestReveal(        
@@ -364,7 +363,7 @@ contract LuckyBall is VRFConsumerBaseV2{
         require(verifySig(user, deadline, _nonces[user], v, r, s), "LuckyBall: user sig does not match");
         
         _requestReveal(user);
-        emit RevealRequested(user);
+        emit RevealRequested(_seasonId, user);
         _nonces[user]++;
         return true;
     }
@@ -384,19 +383,19 @@ contract LuckyBall is VRFConsumerBaseV2{
     }
 
     function endSeason() external onlyOperators() returns (bool) {
+        if (ballGroups.length == 0) {
+            return false;
+        }
         if (revealNeeded) {
             requestRevealGroupSeed();
         }
-        if (ballGroups.length > 0) {
-            uint endBallGroupPos = ballGroups.length-1;
-            uint startBallGroupPos = seasons[getCurrentSeasionId()].startBallGroupPos;
-            if (endBallGroupPos - startBallGroupPos > 0) {
-                seasons[getCurrentSeasionId()].endBallGroupPos = endBallGroupPos;
-                requestRandomSeed(true); 
-                return true;
-            }
+        uint endBallId = ballGroups[ballGroups.length-1];
+        if (endBallId == seasons[_seasonId].endBallId ) {
+            return false;
         }
-        return false;
+        seasons[_seasonId].endBallId = endBallId;
+        requestRandomSeed(true); 
+        return true;
     }
 
     function requestRevealGroupSeed() public onlyOperators() returns (uint) {
@@ -408,10 +407,10 @@ contract LuckyBall is VRFConsumerBaseV2{
     }
 
     function setRevealGroupSeed(uint randSeed) internal {
-        revealGroupSeeds[getCurrentRevealGroupId()] = randSeed;
-        emit CodeSeedRevealed(getCurrentRevealGroupId());
+        revealGroupSeeds[_revealGroupId] = randSeed;
+        emit CodeSeedRevealed(_seasonId, _revealGroupId);
         revealNeeded = false;        
-        _revealGroupIds++;
+        _revealGroupId++;
     }
 
     function requestRandomSeed(bool _isSeasonPick) internal returns (uint) {
@@ -428,17 +427,11 @@ contract LuckyBall is VRFConsumerBaseV2{
     }
 
     function setSeasonWinner(uint randSeed) internal {
-        Season storage season = seasons[getCurrentSeasionId()];
-        uint startBallId;
-        uint lastBallId = ballGroups[season.endBallGroupPos];
-        if (season.startBallGroupPos == uint(0)) {
-            startBallId = 1;
-        } else {
-            startBallId = ballGroups[season.startBallGroupPos-1] + 1;
-        }
-        uint seasonBallCount = lastBallId - startBallId + 1;
-        season.winningBallId = startBallId + (randSeed % seasonBallCount); 
-        emit SeasonEnded();
+        Season storage season = seasons[_seasonId];
+        uint seasonBallCount = season.endBallId - season.startBallId + 1;
+        season.winningBallId = season.startBallId + (randSeed % seasonBallCount);
+        emit WinnerPicked(_seasonId, season.winningBallId); 
+        emit SeasonEnded(_seasonId);
     }    
 
     function fulfillRandomWords(
@@ -453,5 +446,4 @@ contract LuckyBall is VRFConsumerBaseV2{
             setRevealGroupSeed(seed);
         }
     }
-
 }
