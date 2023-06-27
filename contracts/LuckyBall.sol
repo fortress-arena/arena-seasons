@@ -7,7 +7,7 @@
  * Using EIP712 signTypedData_v4 for relay signature verification
  **/
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.10;
 
 //import "@openzeppelin/contracts/access/Ownable.sol";
 //import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -80,7 +80,7 @@ contract LuckyBall is VRFConsumerBaseV2{
         require(_owner == msg.sender, "LuckyBall: caller is not the owner address!");
         _;
     }       
-    
+
     constructor(
         uint64 subscriptionId,
         address vrfCoordinator,
@@ -202,7 +202,7 @@ contract LuckyBall is VRFConsumerBaseV2{
         return true;
     }    
 
-    function issueBalls(address[] calldata _tos, uint[] calldata _qty) public onlyOperators() returns (bool) {
+    function issueBalls(address[] calldata _tos, uint[] calldata _qty) external onlyOperators() returns (bool) {
         require(_tos.length == _qty.length, "LuckBall: address and qty counts do not match");
         require(isSeasonActive(), "LuckyBall: Season is not active");
         for(uint i=0; i<_tos.length; i++) {
@@ -222,6 +222,7 @@ contract LuckyBall is VRFConsumerBaseV2{
         return myGroups;
     }
 
+/*
     function issueTest() public onlyOperators() {
         address a = 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4;
         ballCount += 100;
@@ -231,6 +232,7 @@ contract LuckyBall is VRFConsumerBaseV2{
         userBallCounts[a][getCurrentSeasionId()] += 100;
         emit BallIssued(a, 100);
     }
+*/
 
     function ownerOf(uint ballId) public view returns (address) {
         if (ballId == 0) {
@@ -247,11 +249,12 @@ contract LuckyBall is VRFConsumerBaseV2{
     function generateWinningCode() internal view returns (uint) {
         return extractCode(uint(keccak256(abi.encodePacked(blockhash(block.number -1), block.timestamp))));        
     }
-
+    /*
     function setWinningBallId(uint winner) public onlyOperators() returns (bool) {
         seasons[getCurrentSeasionId()].winningBallId = winner;
         return true;
     }
+    */
 
     function extractCode(uint n) internal pure returns (uint) {
         uint r = n % 1000000;
@@ -259,7 +262,7 @@ contract LuckyBall is VRFConsumerBaseV2{
         return r;
     } 
 
-    function requestReveal() public returns (bool) {
+    function requestReveal() external returns (bool) {
         return _requestReveal(msg.sender);
     }
 
