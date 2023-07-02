@@ -7,10 +7,7 @@
  * Using EIP712 signTypedData_v4 for relay signature verification
  **/
 
-pragma solidity ^0.8.10;
-
-//import "@openzeppelin/contracts/access/Ownable.sol";
-//import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+pragma solidity ^0.8.18;
 
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
@@ -60,16 +57,17 @@ contract LuckyBall is VRFConsumerBaseV2{
 
     mapping(uint => Season) public seasons;
     mapping(address => mapping(uint => uint[])) public userBallGroups; //user addr => seasonId => ballGroupPos
-    mapping(uint => uint) public revealGroups;
-    mapping(uint => uint) public revealGroupSeeds; // revealGroup => revealSeed 
+    mapping(uint => uint) public revealGroups; //ballId => revealGroupId
+    mapping(uint => uint) public revealGroupSeeds; // revealGroupId => revealSeed 
     mapping(address => uint) public newRevealPos;
     mapping(address => mapping(uint => uint)) public userBallCounts; //userAddr => seasonId => count
+    mapping(uint => uint[]) public ballPosByRevealGroup; // revealGroupId => [ballPos]
 
     event BallIssued(uint seasonId, address indexed recipient, uint qty, uint lastBallId);
-    event RevealRequested(uint seasonId, address indexed requestor);
+    event RevealRequested(uint seasonId, uint revealGroupId, address indexed requestor);
     event SeasonStarted(uint seasonId);
     event SeasonEnded(uint seasonId);
-    event CodeSeedRevealed(uint seasonId, uint revealGroup);
+    event CodeSeedRevealed(uint seasonId, uint revealGroupId);
     event WinnerPicked(uint indexed seasonId, uint ballId);
 
     modifier onlyOperators() {
@@ -165,7 +163,7 @@ contract LuckyBall is VRFConsumerBaseV2{
         return _operator;
     }
 
-    function getCurrentSeasionId() public view returns (uint) {
+    function getCurrentSeasonId() public view returns (uint) {
         return _seasonId;
     }
 
@@ -178,6 +176,9 @@ contract LuckyBall is VRFConsumerBaseV2{
     }     
 
     function startSeason() external onlyOperators() returns (uint) {
+        if (_seasonId > 0 && seasons[_seasonId].winningBallId == 0) {
+            revert('LuckyBall: the current season should be ended first');
+        }        
         _seasonId++;
         uint start;
         if (ballGroups.length == 0) {
@@ -227,18 +228,6 @@ contract LuckyBall is VRFConsumerBaseV2{
         return myGroups;
     }
 
-/*
-    function issueTest() public onlyOperators() {
-        address a = 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4;
-        ballCount += 100;
-        ballGroups.push(ballCount);
-        addrGroups.push(a);
-        userBallGroups[a][getCurrentSeasionId()].push(ballGroups.length-1);
-        userBallCounts[a][getCurrentSeasionId()] += 100;
-        emit BallIssued(a, 100);
-    }
-*/
-
     function ownerOf(uint ballId) public view returns (address) {
         if (ballId == 0) {
             return address(0);
@@ -254,12 +243,6 @@ contract LuckyBall is VRFConsumerBaseV2{
     function generateWinningCode() internal view returns (uint) {
         return extractCode(uint(keccak256(abi.encodePacked(blockhash(block.number -1), block.timestamp))));        
     }
-    /*
-    function setWinningBallId(uint winner) public onlyOperators() returns (bool) {
-        seasons[getCurrentSeasionId()].winningBallId = winner;
-        return true;
-    }
-    */
 
     function extractCode(uint n) internal pure returns (uint) {
         uint r = n % 1000000;
@@ -279,12 +262,14 @@ contract LuckyBall is VRFConsumerBaseV2{
         require(myGroups.length >= newPos, "LuckyBall: No new balls to reveal");
         for (uint i=newPos; i<myGroups.length; i++) {
             revealGroups[myGroups[i]] = revealGroupId;
+            ballPosByRevealGroup[revealGroupId].push(myGroups[i]);
         }            
         newRevealPos[_addr] = myGroups.length;
+
         if (!revealNeeded) {
             revealNeeded = true;
         }
-        emit RevealRequested(_seasonId, _addr);
+        emit RevealRequested(_seasonId, _revealGroupId, _addr);
         return false;
     }
 
@@ -323,13 +308,8 @@ contract LuckyBall is VRFConsumerBaseV2{
 
     function getBalls(address addr, uint seasonId) public view returns (uint[] memory) {
         uint[] memory myGroups = userBallGroups[addr][seasonId];
-        //Season memory season = seasons[seasonId];
-        //uint seasonEndBallId = season.endBallId;
         uint[] memory ballIds = new uint[](userBallCounts[addr][seasonId]);
 
-        //if (seasonTopPos == uint(0)) {
-        //    seasonTopPos = ballGroups.length-1;
-        //}
         uint pos = 0;
         for (uint i=0; i < myGroups.length; i++) {
             uint end = ballGroups[myGroups[i]];
@@ -351,6 +331,37 @@ contract LuckyBall is VRFConsumerBaseV2{
         return getBalls(msg.sender, _seasonId);
     }
 
+    function getBallsByRevealGroup(uint revealGroupId) public view returns (uint[] memory) {
+        uint[] memory ballPos = ballPosByRevealGroup[revealGroupId];
+        uint groupBallCount;
+        for (uint i=0; i < ballPos.length; i++) {
+            uint start;
+            uint end = ballGroups[ballPos[i]];
+            if (ballPos[i] == 0) {
+                start = 1;
+            } else {
+                start = ballGroups[ballPos[i] - 1] + 1;
+            }
+            groupBallCount += (end - start + 1);
+        }
+        uint[] memory ballIds = new uint[](groupBallCount);
+        uint pos = 0;
+        for (uint i=0; i < ballPos.length; i++) {
+            uint end = ballGroups[ballPos[i]];            
+            uint start;
+            if (ballPos[i] == 0) {
+                start = 1;
+            } else {
+                start = ballGroups[ballPos[i] - 1] + 1;
+            }
+            for (uint j=start; j <= end; j++) {
+                ballIds[pos] = j;
+                pos++;
+            }
+        }
+        return ballIds;
+    }
+
     function relayRequestReveal(        
         address user,
         uint deadline,
@@ -363,7 +374,6 @@ contract LuckyBall is VRFConsumerBaseV2{
         require(verifySig(user, deadline, _nonces[user], v, r, s), "LuckyBall: user sig does not match");
         
         _requestReveal(user);
-        emit RevealRequested(_seasonId, user);
         _nonces[user]++;
         return true;
     }

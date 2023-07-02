@@ -140,3 +140,5 @@ typechain-types
 cache
 artifacts
 
+relayer/storage/data.mdb
+relayer/storage/lock.mdb

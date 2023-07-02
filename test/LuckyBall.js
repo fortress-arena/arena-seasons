@@ -113,20 +113,38 @@ describe("LuckyBall core", function () {
     await expect(contract.connect(operator).startSeason())
     .to.emit(contract, 'SeasonStarted');
 
-    let seasonId = await contract.getCurrentSeasionId();
+    let seasonId = await contract.getCurrentSeasonId();
     console.log(seasonId);
     expect(seasonId).to.equal(1);
   });
   
   it("startSeason() should be not executable by other than owner or operator", async function () {
-    await expect(contract.connect(user1).startSeason()).to.be.revertedWith("LuckyBall: caller is not the operator address!");
+    await expect(contract.connect(user1).startSeason())
+    .to.be.revertedWith("LuckyBall: caller is not the operator address!");
     
   });
+
+  it("startSeason() should be reverted when the current season is not ended", async function() {
+    let { contract } = await loadFixture(ballFixture);
+    await contract.connect(user1).requestReveal();
+    await expect(contract.connect(operator).startSeason())
+    .to.be.revertedWith("LuckyBall: the current season should be ended first");
+  });
+
+  it("startSeason() should work after the current season is ended", async function() {
+    let { contract } = await loadFixture(ballFixture);
+    await contract.connect(user1).requestReveal();
+    await contract.connect(operator).endSeason();
+    await expect(contract.connect(operator).startSeason())
+    .to.be.revertedWith("LuckyBall: the current season should be ended first");
+  });
+
+
   
   it("Season object should hav startBallId and WinningCode ", async function() {
     await contract.connect(owner).setOperator(operator.address);
     await contract.connect(operator).startSeason();  
-    let seasonId = await contract.getCurrentSeasionId();
+    let seasonId = await contract.getCurrentSeasonId();
     let season = await contract.seasons(seasonId);
     //console.log(season); 
     expect(season.slice(0,4)).to.have.ordered.members([ 1n, 1n, 0n, 0n]);
@@ -151,7 +169,7 @@ describe("LuckyBall core", function () {
   it("issueBalls() should issue balls to users with qty", async function () {
     //[user1.address, user2.address],[100,200]
     let { contract } = await loadFixture(ballFixture);
-    let seasonId = await contract.getCurrentSeasionId();
+    let seasonId = await contract.getCurrentSeasonId();
     let ballCount = await contract.ballCount();
     let user1BallCount = await contract.userBallCounts(user1.address, seasonId);
     let user2BallCount = await contract.userBallCounts(user2.address, seasonId);
@@ -190,7 +208,7 @@ describe("LuckyBall core", function () {
 
   it("getBalls() should show all balls by user address and seasonId ", async function () {
     let { contract } = await loadFixture(ballFixture);  
-    let seasonId = await contract.getCurrentSeasionId();  
+    let seasonId = await contract.getCurrentSeasonId();  
     let balls = await contract.getBalls(user1.address, seasonId);
     expect(balls.length).to.equal(100);
   });
@@ -219,10 +237,10 @@ describe("LuckyBall core", function () {
 
   it("requestReveal() should accept reveal request", async function () {
     let { contract } = await loadFixture(ballFixture);
-    let seasonId = await contract.getCurrentSeasionId();    
+    let seasonId = await contract.getCurrentSeasonId();    
     await expect(contract.connect(user1).requestReveal())
     .to.emit(contract, "RevealRequested")
-    .withArgs(seasonId, user1.address);
+    .withArgs(seasonId, 1, user1.address);
 
     //await contract.connect(user2).requestReveal();
     let revealGroup = await contract.getRevealGroup(1);
@@ -251,6 +269,20 @@ describe("LuckyBall core", function () {
     let revealGroup400_again = await contract.getRevealGroup(400);
     expect(revealGroup400_again).to.equal(1);
   });  
+
+  it("requestReveal() should udpate ballPosByRevealGroup", async function () {
+        //[user1.address, user2.address],[100,200]
+    let { contract } = await loadFixture(ballFixture);
+    let revealGroupId = await contract.getCurrentRevealGroupId();
+    console.log('rGroupID:', revealGroupId);
+    await contract.connect(user2).requestReveal()
+    let revealGroupBalls = await contract.getBallsByRevealGroup(revealGroupId);
+    //console.log(revealGroupBalls);
+    expect(revealGroupBalls.length).to.equal(200);
+    expect(revealGroupBalls[0]).to.equal(101);
+    expect(revealGroupBalls[199]).to.equal(300);
+  });
+
 
   it("relayRequestReveal() should relay with sig verification", async function () {
     let { deadline, nonce, sig, contract } = await loadFixture(sigFixture);
@@ -300,7 +332,7 @@ describe("LuckyBall core", function () {
     expect(await contract.getBallCode(1)).to.be.at.below(1000000);
   });
 
-  it("endSeason() should end the current season", async function () {
+  it("endSeason() should end the current season, and then startSeason() should work", async function () {
 
     await contract.connect(owner).setOperator(operator.address);
     await contract.connect(operator).startSeason();
@@ -313,12 +345,13 @@ describe("LuckyBall core", function () {
     await contract.connect(operator).endSeason();
     let requestId2 = await contract.lastRequestId();   
     await vrf.connect(owner).fulfillRandomWords(requestId2, contract.target); 
-    console.log(await contract.s_requests(1));
-    console.log(await contract.s_requests(2));
-    console.log(await contract.seasons(1));
+    //console.log(await contract.s_requests(1));
+    //console.log(await contract.s_requests(2));
+    //console.log(await contract.seasons(1));
+    await contract.connect(operator).startSeason();
+    let seasonId = await contract.getCurrentSeasonId();
 
-
-    expect().to.equal();
+    expect(seasonId).to.equal(2);
   });
   
   it("", async function () {
