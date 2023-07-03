@@ -259,8 +259,8 @@ contract LuckyBall is VRFConsumerBaseV2{
         uint revealGroupId = _revealGroupId;
         uint newPos = newRevealPos[_addr];
         require(myGroups.length > 0, "LuckyBall: No balls to reveal");
-        require(myGroups.length >= newPos, "LuckyBall: No new balls to reveal");
-        for (uint i=newPos; i<myGroups.length; i++) {
+        require(myGroups.length > newPos, "LuckyBall: No new balls to reveal");
+        for (uint i=newPos; i < myGroups.length; i++) {
             revealGroups[myGroups[i]] = revealGroupId;
             ballPosByRevealGroup[revealGroupId].push(myGroups[i]);
         }            
