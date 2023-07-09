@@ -4,25 +4,41 @@
 // You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
 // will compile your contracts, add the Hardhat Runtime Environment's members to the
 // global scope, and execute the script.
-const hre = require("hardhat");
+const { ethers, upgrades } = require("hardhat");
+
+const getFeeOption = async () => {
+  const feeData =  await provider.getFeeData()
+  const maxFeePerGas = feeData.maxFeePerGas + ethers.parseUnits('5', 'gwei')
+  const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas + ethers.parseUnits('3', 'gwei')
+  return { maxFeePerGas, maxPriorityFeePerGas }
+}
 
 async function main() {
-
-  const s_subscriptionId = 5320; //https://vrf.chain.link/
+  const subscriptionId = 5320; //https://vrf.chain.link/
   const vrfCoordinator = "0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed"; //Mumbai 
-  const s_keyHash = "0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f";
+  const keyHash = "0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f";
 
-  const lock = await hre.ethers.deployContract("Lock", [unlockTime], {
-    value: lockedAmount,
-  });
+  LuckyBallContract = await ethers.getContractFactory("LuckyBall");
+  const { owner } = await ethers.getSigners();
 
-  await lock.waitForDeployment();
+  //let s_keyHash = "0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc";   
 
-  console.log(
-    `Lock with ${ethers.formatEther(
-      lockedAmount
-    )}ETH and unlock timestamp ${unlockTime} deployed to ${lock.target}`
-  );
+  //beacon proxy
+  const beacon = await upgrades.deployBeacon(LuckyBallContract);
+  await beacon.waitForDeployment();
+  console.log('beacon contract deployed at ', await beacon.getAddress());
+  const proxy = await upgrades.deployBeaconProxy(beacon, LuckyBallContract, [subscriptionId, vrfCoordinator, keyHash]);
+  await proxy.waitForDeployment();
+  console.log('proxy contract deployed at ', await proxy.getAddress());
+  console.log('implementation contract deployed at ', await beacon.implementation());
+}
+
+async function upgrade() {
+  let beaconAddr;
+  let proxyAddr;
+  const ContractV2 = await ethers.getContractFactory("LuckyBallV2");
+  await upgrades.upgradeBeacon(beaconAddr, ContractV2);
+  const contract2 = ContractV2.attach(proxyAddr);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

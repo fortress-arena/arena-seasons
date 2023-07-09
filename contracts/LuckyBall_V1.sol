@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /**
- * @title LuckBall Event Contract
+ * @title LuckyBall Event Contract
  * @author Atomrigs Lab
  *
  * Supports ChainLink VRF_V2
@@ -12,7 +12,7 @@ pragma solidity ^0.8.18;
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 
-contract LuckyBall is VRFConsumerBaseV2{
+contract LuckyBall1 is VRFConsumerBaseV2{
 
     uint private _ballId;
     uint private _seasonId;
@@ -144,7 +144,7 @@ contract LuckyBall is VRFConsumerBaseV2{
         return hash;
     }
 
-    function verifySig(address _user, uint _deadline, uint _nonce,  uint8 v, bytes32 r,bytes32 s) public view returns (bool) {
+    function verifySig(address _user, uint _deadline, uint _nonce,  uint8 v, bytes32 r, bytes32 s) public view returns (bool) {
         bytes32 hash = getEIP712Hash(_user, _deadline, _nonce);
         if (v < 27) {
           v += 27;

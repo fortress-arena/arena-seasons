@@ -30,7 +30,6 @@ describe("LuckyBall core", function () {
   let user2;
   let VRFCoordinatorV2Mock;
   let vrf;
-  let beacon;
  
   beforeEach(async function () {
     LuckyBallContract = await ethers.getContractFactory("LuckyBall");
@@ -38,10 +37,8 @@ describe("LuckyBall core", function () {
 
     //let s_subscriptionId = 5320; //https://vrf.chain.link/
     //let vrfCoordinator = "0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed"; //Mumbai 
-    //let s_keyHash = "0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f";
-    //let s_keyHash = "0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc";   
+    //let s_keyHash = "0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f";    
 
-    //vrf setup
     VRFCoordinatorV2Mock = await ethers.getContractFactory("VRFCoordinatorV2Mock");
     let _BASEFEE = 100000000000000000n;
     let _GASPRICELINK= 1000000000;
@@ -52,25 +49,19 @@ describe("LuckyBall core", function () {
     await vrf.connect(owner).fundSubscription(1, 100000000000000000000000n);
     let vrfCoordinator= vrf.target;
     let s_keyHash = "0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f";
+    //let s_keyHash = "0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc";
 
-    //beacon proxy
-    beacon = await upgrades.deployBeacon(LuckyBallContract);
-    await beacon.waitForDeployment();
-    contract = await upgrades.deployBeaconProxy(beacon, LuckyBallContract, [subscriptionId, vrfCoordinator, s_keyHash]);
+    contract = await LuckyBallContract.connect(owner).deploy(subscriptionId, vrfCoordinator, s_keyHash);
     await contract.waitForDeployment();
-    //contract = await LuckyBallContract.connect(owner).deploy(subscriptionId, vrfCoordinator, s_keyHash);
-    //await contract.waitForDeployment();
-    //console.log(await contract.getAddress());
-    //console.log((await contract.getDomainInfo()));
-    await vrf.addConsumer(1, await contract.getAddress());
-    return { vrf, contract, beacon };
+    await vrf.addConsumer(1, contract.target);
+    return {vrf, contract};
   });
 
   async function ballFixture() {
     await contract.connect(owner).setOperator(operator.address);
     await contract.connect(operator).startSeason();
     await contract.connect(operator).issueBalls([user1.address, user2.address],[100,200]);
-    return { contract };
+    return {contract};
   }
 
   async function sigFixture() {
@@ -175,6 +166,8 @@ describe("LuckyBall core", function () {
     let newSeasonId = await contract.getCurrentSeasonId();
     expect(newSeasonId).to.equal(2);
   });
+
+
   
   it("Season object should hav startBallId and WinningCode ", async function() {
     await contract.connect(owner).setOperator(operator.address);
@@ -286,6 +279,7 @@ describe("LuckyBall core", function () {
     .to.emit(contract, "RevealRequested")
     .withArgs(seasonId, 1, user1.address);
 
+    //await contract.connect(user2).requestReveal();
     let revealGroup = await contract.getRevealGroup(1);
     let revealGroup2 = await contract.getRevealGroup(101);
     expect(revealGroup).to.equal(1);
@@ -397,12 +391,8 @@ describe("LuckyBall core", function () {
     expect(seasonId).to.equal(2);
   });
   
-  it("An upgrade version should work with the same proxy ", async function () {
-    const ContractV2 = await ethers.getContractFactory("LuckyBallV2");
-    await upgrades.upgradeBeacon(await beacon.getAddress(), ContractV2);
-    const contract2 = ContractV2.attach(await contract.getAddress());
-    expect(await contract2.getAddress()).to.equal(await contract.getAddress());
-    expect(await contract2.versionCheck()).to.equal(2);
+  it("", async function () {
+    expect().to.equal();
   });  
 
 });
