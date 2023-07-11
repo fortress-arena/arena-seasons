@@ -33,12 +33,11 @@ async function main() {
   console.log('implementation contract deployed at ', await beacon.implementation());
 }
 
-async function upgrade() {
-  let beaconAddr;
-  let proxyAddr;
+async function upgrade(beaconAddr, proxyAddr) {
   const ContractV2 = await ethers.getContractFactory("LuckyBallV2");
-  await upgrades.upgradeBeacon(beaconAddr, ContractV2);
+  const beacon = await upgrades.upgradeBeacon(beaconAddr, ContractV2);
   const contract2 = ContractV2.attach(proxyAddr);
+  console.log('New implementation address is ', await beacon.implementation());h
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -4,7 +4,8 @@
  * @author Atomrigs Lab
  *
  * Supports ChainLink VRF_V2
- * Using EIP712 signTypedData_v4 for relay signature verification
+ * Supports Relay transaction using EIP712 signTypedData_v4 for relay signature verification
+ * Supports BeaconProxy Upgradeable pattern
  **/
 
 pragma solidity ^0.8.18;
@@ -56,7 +57,7 @@ abstract contract VRFConsumerBaseV2Upgradeable is Initializable {
     }
 }
 
-contract LuckyBall is VRFConsumerBaseV2Upgradeable{
+contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
 
     uint32 private _ballId;
     uint16 private _seasonId;
@@ -100,7 +101,7 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
     //
 
     //** EIP 712 related
-    bytes32 public DOMAIN_SEPARATOR;
+    bytes32 private DOMAIN_SEPARATOR;
     mapping (address => uint256) private _nonces;
     //
 
@@ -129,12 +130,13 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
         require(_owner == msg.sender, "LuckyBall: caller is not the owner address!");
         _;
     }       
-
+/* Omitted for version 2
     function initialize(
         uint64 _subscriptionId,
         address _vrfCoordinator,
         bytes32 _keyHash
     ) public initializer {
+        require(_owner == address(0), "LuckyBall: already initialized"); 
         __VRFConsumerBaseV2Upgradeable_init(_vrfCoordinator);
         COORDINATOR = VRFCoordinatorV2Interface(_vrfCoordinator);
         s_keyHash = _keyHash;
@@ -142,6 +144,10 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
         _owner = msg.sender;
         _setDomainSeparator(); //EIP712
         _revealGroupId++;
+    }
+*/
+    function getVersion() public pure returns (string memory) {
+        return "2";
     }
 
     //** EIP 712 and Relay functions
@@ -151,7 +157,7 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
 
     function getDomainInfo() public view returns (string memory, string memory, uint, address) {
         string memory name = "LuckyBall_Relay";
-        string memory version = "1";
+        string memory version = getVersion();
         uint256 chainId = block.chainid;
         address verifyingContract = address(this);
         return (name, version, chainId, verifyingContract);
@@ -162,7 +168,7 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
         return dataTypes;      
     }
 
-    function _setDomainSeparator() internal {
+    function _setDomainSeparator() public {
         string memory EIP712_DOMAIN_TYPE = "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
         ( string memory name, string memory version, uint256 chainId, address verifyingContract ) = getDomainInfo();
         DOMAIN_SEPARATOR = keccak256(
@@ -266,12 +272,12 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
         return true;
     }    
 
-    function issueBalls(address[] calldata _tos, uint32[] calldata _qty) external onlyOperators() returns (bool) {
+    function issueBalls(address[] calldata _tos, uint32[] calldata _qty) external onlyOperators() {
         require(_tos.length == _qty.length, "LuckBall: address and qty counts do not match");
         require(isSeasonActive(), "LuckyBall: Season is not active");
-        uint16 length = uint16(_tos.length); 
+        uint256 length = _tos.length; 
         unchecked {
-            for(uint16 i=0; i<length; ++i) {
+            for(uint256 i=0; i<length; ++i) {
                 address to = _tos[i];
                 uint32 qty = _qty[i];
                 require(qty > 0, "LuckyBall: qty should be bigger than 0");
@@ -281,15 +287,19 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
                 emit BallIssued(_seasonId, to, qty, ballCount);
             } 
         }
-        return true;       
     }
+
+    function getUserBallGroups(address addr, uint16 seasonId) public view returns (uint32[] memory) {
+        uint32[] memory myGroups = userBallGroups[addr][seasonId];
+        return myGroups;
+    }    
 
     function getUserBallCount(address _user, uint16 seasonId_) public view returns (uint32) {
         uint32[] memory groupPos = userBallGroups[_user][seasonId_];
         uint32 count;
-        uint16 length = uint16(groupPos.length);
+        uint256 length = groupPos.length;
         unchecked {
-            for(uint16 i=0; i<length; ++i) {
+            for(uint256 i=0; i<length; ++i) {
                 BallGroup memory group = ballGroups[groupPos[i]];
                 uint32 start;
                 //uint32 end;
@@ -308,7 +318,8 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
         if (ballId_ == 0) {
             return address(0);
         }
-        for(uint32 i=0; i < ballGroups.length; ++i) {
+        uint256 length = ballGroups.length;
+        for(uint256 i=0; i < length; ++i) {
             if(ballId_ <= ballGroups[i].endBallId) {
                 return ballGroups[i].owner;
             }
@@ -332,17 +343,17 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
 
     function _requestReveal(address _addr) internal returns (bool) {
         uint32[] memory myGroups = userBallGroups[_addr][_seasonId];
-        uint32 myLength = uint32(myGroups.length);
+        uint256 myLength = myGroups.length;
         uint32 newPos = newRevealPos[_addr];
         require(myLength > 0, "LuckyBall: No balls to reveal");
         require(myLength > newPos, "LuckyBall: No new balls to reveal");
         unchecked {
-            for (uint32 i=newPos; i<myLength; ++i) {
+            for (uint256 i=newPos; i<myLength; ++i) {
                 revealGroups[myGroups[i]] = _revealGroupId;
                 ballPosByRevealGroup[_revealGroupId].push(myGroups[i]);
             }          
         }  
-        newRevealPos[_addr] = myLength;
+        newRevealPos[_addr] = uint32(myLength);
 
         if (!revealNeeded) {
             revealNeeded = true;
@@ -470,8 +481,8 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
         bytes32[] calldata rs,
         bytes32[] calldata ss) 
         public returns(bool) {
-        
-        for(uint256 i=0; i<users.length; i++) {
+        uint256 length = users.length;
+        for(uint256 i=0; i<length; i++) {
             relayRequestReveal(users[i],deadlines[i], vs[i], rs[i], ss[i]);
         }
         return true;

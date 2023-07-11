@@ -5,6 +5,11 @@
       "address": "0x1D1cF5Cbd9569E8b1a91d074bF795d16F55a048A",
       "txHash": "0x4d9f87feb052b8ad4e482f8570bc456205ef3d757355d2dc998d75b5f47cda5a",
       "kind": "beacon"
+    },
+    {
+      "address": "0x2933379AAd4ECb8e635C40F18D79a903B46C8cE3",
+      "txHash": "0xf8f435855b25b9294f9af37cae382b8a969cd794709097d069547d78565d7e47",
+      "kind": "beacon"
     }
   ],
   "impls": {
@@ -313,6 +318,1454 @@
           },
           "t_struct(Season)5768_storage": {
             "label": "struct LuckyBall.Season",
+            "members": [
+              {
+                "label": "seasonId",
+                "type": "t_uint16",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "startBallId",
+                "type": "t_uint32",
+                "offset": 2,
+                "slot": "0"
+              },
+              {
+                "label": "endBallId",
+                "type": "t_uint32",
+                "offset": 6,
+                "slot": "0"
+              },
+              {
+                "label": "winningBallId",
+                "type": "t_uint32",
+                "offset": 10,
+                "slot": "0"
+              },
+              {
+                "label": "winningCode",
+                "type": "t_uint32",
+                "offset": 14,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint16": {
+            "label": "uint16",
+            "numberOfBytes": "2"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "bf8e95244c72166efe99a456548fc115e4b5903462c758bcd25fae8d591ca990": {
+      "address": "0xd69c4421C3FA1a3CF1c4D67a95aAd394d754D435",
+      "txHash": "0x03535b9db92a0afaf4401197f8981ab0bbaf3f0d84cfad240c94c0022f6a8c4f",
+      "layout": {
+        "solcVersion": "0.8.18",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:68"
+          },
+          {
+            "label": "vrfCoordinator",
+            "offset": 2,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "VRFConsumerBaseV2Upgradeable",
+            "src": "contracts/LuckyBall_V2.sol:19"
+          },
+          {
+            "label": "_ballId",
+            "offset": 22,
+            "slot": "0",
+            "type": "t_uint32",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:62"
+          },
+          {
+            "label": "_seasonId",
+            "offset": 26,
+            "slot": "0",
+            "type": "t_uint16",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:63"
+          },
+          {
+            "label": "_revealGroupId",
+            "offset": 28,
+            "slot": "0",
+            "type": "t_uint32",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:64"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:65"
+          },
+          {
+            "label": "_operator",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_address",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:66"
+          },
+          {
+            "label": "ballCount",
+            "offset": 20,
+            "slot": "2",
+            "type": "t_uint32",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:67"
+          },
+          {
+            "label": "revealNeeded",
+            "offset": 24,
+            "slot": "2",
+            "type": "t_bool",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:68"
+          },
+          {
+            "label": "ballGroups",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_array(t_struct(BallGroup)4173_storage)dyn_storage",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:83"
+          },
+          {
+            "label": "COORDINATOR",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_contract(VRFCoordinatorV2Interface)153",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:86"
+          },
+          {
+            "label": "s_subscriptionId",
+            "offset": 20,
+            "slot": "4",
+            "type": "t_uint64",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:87"
+          },
+          {
+            "label": "s_keyHash",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_bytes32",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:89"
+          },
+          {
+            "label": "lastRequestId",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_uint256",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:93"
+          },
+          {
+            "label": "s_requests",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_uint256,t_struct(RequestStatus)4213_storage)",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:100"
+          },
+          {
+            "label": "DOMAIN_SEPARATOR",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_bytes32",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:104"
+          },
+          {
+            "label": "_nonces",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:105"
+          },
+          {
+            "label": "seasons",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_mapping(t_uint16,t_struct(Season)4184_storage)",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:108"
+          },
+          {
+            "label": "userBallGroups",
+            "offset": 0,
+            "slot": "11",
+            "type": "t_mapping(t_address,t_mapping(t_uint16,t_array(t_uint32)dyn_storage))",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:109"
+          },
+          {
+            "label": "revealGroups",
+            "offset": 0,
+            "slot": "12",
+            "type": "t_mapping(t_uint32,t_uint32)",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:110"
+          },
+          {
+            "label": "revealGroupSeeds",
+            "offset": 0,
+            "slot": "13",
+            "type": "t_mapping(t_uint32,t_uint256)",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:111"
+          },
+          {
+            "label": "newRevealPos",
+            "offset": 0,
+            "slot": "14",
+            "type": "t_mapping(t_address,t_uint32)",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:112"
+          },
+          {
+            "label": "ballPosByRevealGroup",
+            "offset": 0,
+            "slot": "15",
+            "type": "t_mapping(t_uint32,t_array(t_uint32)dyn_storage)",
+            "contract": "LuckyBall",
+            "src": "contracts/LuckyBall_V2.sol:114"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_struct(BallGroup)4173_storage)dyn_storage": {
+            "label": "struct LuckyBall.BallGroup[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint32)dyn_storage": {
+            "label": "uint32[]",
+            "numberOfBytes": "32"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(VRFCoordinatorV2Interface)153": {
+            "label": "contract VRFCoordinatorV2Interface",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_mapping(t_uint16,t_array(t_uint32)dyn_storage))": {
+            "label": "mapping(address => mapping(uint16 => uint32[]))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint32)": {
+            "label": "mapping(address => uint32)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint16,t_array(t_uint32)dyn_storage)": {
+            "label": "mapping(uint16 => uint32[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint16,t_struct(Season)4184_storage)": {
+            "label": "mapping(uint16 => struct LuckyBall.Season)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(RequestStatus)4213_storage)": {
+            "label": "mapping(uint256 => struct LuckyBall.RequestStatus)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint32,t_array(t_uint32)dyn_storage)": {
+            "label": "mapping(uint32 => uint32[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint32,t_uint256)": {
+            "label": "mapping(uint32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint32,t_uint32)": {
+            "label": "mapping(uint32 => uint32)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(BallGroup)4173_storage": {
+            "label": "struct LuckyBall.BallGroup",
+            "members": [
+              {
+                "label": "endBallId",
+                "type": "t_uint32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "owner",
+                "type": "t_address",
+                "offset": 4,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RequestStatus)4213_storage": {
+            "label": "struct LuckyBall.RequestStatus",
+            "members": [
+              {
+                "label": "exists",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "isSeasonPick",
+                "type": "t_bool",
+                "offset": 1,
+                "slot": "0"
+              },
+              {
+                "label": "seed",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Season)4184_storage": {
+            "label": "struct LuckyBall.Season",
+            "members": [
+              {
+                "label": "seasonId",
+                "type": "t_uint16",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "startBallId",
+                "type": "t_uint32",
+                "offset": 2,
+                "slot": "0"
+              },
+              {
+                "label": "endBallId",
+                "type": "t_uint32",
+                "offset": 6,
+                "slot": "0"
+              },
+              {
+                "label": "winningBallId",
+                "type": "t_uint32",
+                "offset": 10,
+                "slot": "0"
+              },
+              {
+                "label": "winningCode",
+                "type": "t_uint32",
+                "offset": 14,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint16": {
+            "label": "uint16",
+            "numberOfBytes": "2"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "91cc472a5e4205b25435de1047bad1bec3115fd741f5de224bd22daa1b885e0c": {
+      "address": "0xe45424708db037723994b1Ff1b4Dd8eD4ddF8fa8",
+      "txHash": "0x62e79ef07d1fbec9d2cd45d0223daa05b27e1ab8cef58afd2db3d33cc94d2eba",
+      "layout": {
+        "solcVersion": "0.8.18",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:68"
+          },
+          {
+            "label": "vrfCoordinator",
+            "offset": 2,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "VRFConsumerBaseV2Upgradeable",
+            "src": "contracts/LuckyBall_V2_2.sol:19"
+          },
+          {
+            "label": "_ballId",
+            "offset": 22,
+            "slot": "0",
+            "type": "t_uint32",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:62"
+          },
+          {
+            "label": "_seasonId",
+            "offset": 26,
+            "slot": "0",
+            "type": "t_uint16",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:63"
+          },
+          {
+            "label": "_revealGroupId",
+            "offset": 28,
+            "slot": "0",
+            "type": "t_uint32",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:64"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:65"
+          },
+          {
+            "label": "_operator",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_address",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:66"
+          },
+          {
+            "label": "ballCount",
+            "offset": 20,
+            "slot": "2",
+            "type": "t_uint32",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:67"
+          },
+          {
+            "label": "revealNeeded",
+            "offset": 24,
+            "slot": "2",
+            "type": "t_bool",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:68"
+          },
+          {
+            "label": "ballGroups",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_array(t_struct(BallGroup)7591_storage)dyn_storage",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:83"
+          },
+          {
+            "label": "COORDINATOR",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_contract(VRFCoordinatorV2Interface)248",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:86"
+          },
+          {
+            "label": "s_subscriptionId",
+            "offset": 20,
+            "slot": "4",
+            "type": "t_uint64",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:87"
+          },
+          {
+            "label": "s_keyHash",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_bytes32",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:89"
+          },
+          {
+            "label": "lastRequestId",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_uint256",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:93"
+          },
+          {
+            "label": "s_requests",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_uint256,t_struct(RequestStatus)7631_storage)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:100"
+          },
+          {
+            "label": "DOMAIN_SEPARATOR",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_bytes32",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:104"
+          },
+          {
+            "label": "_nonces",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:105"
+          },
+          {
+            "label": "seasons",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_mapping(t_uint16,t_struct(Season)7602_storage)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:108"
+          },
+          {
+            "label": "userBallGroups",
+            "offset": 0,
+            "slot": "11",
+            "type": "t_mapping(t_address,t_mapping(t_uint16,t_array(t_uint32)dyn_storage))",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:109"
+          },
+          {
+            "label": "revealGroups",
+            "offset": 0,
+            "slot": "12",
+            "type": "t_mapping(t_uint32,t_uint32)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:110"
+          },
+          {
+            "label": "revealGroupSeeds",
+            "offset": 0,
+            "slot": "13",
+            "type": "t_mapping(t_uint32,t_uint256)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:111"
+          },
+          {
+            "label": "newRevealPos",
+            "offset": 0,
+            "slot": "14",
+            "type": "t_mapping(t_address,t_uint32)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:112"
+          },
+          {
+            "label": "ballPosByRevealGroup",
+            "offset": 0,
+            "slot": "15",
+            "type": "t_mapping(t_uint32,t_array(t_uint32)dyn_storage)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:114"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_struct(BallGroup)7591_storage)dyn_storage": {
+            "label": "struct LuckyBallV2.BallGroup[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint32)dyn_storage": {
+            "label": "uint32[]",
+            "numberOfBytes": "32"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(VRFCoordinatorV2Interface)248": {
+            "label": "contract VRFCoordinatorV2Interface",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_mapping(t_uint16,t_array(t_uint32)dyn_storage))": {
+            "label": "mapping(address => mapping(uint16 => uint32[]))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint32)": {
+            "label": "mapping(address => uint32)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint16,t_array(t_uint32)dyn_storage)": {
+            "label": "mapping(uint16 => uint32[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint16,t_struct(Season)7602_storage)": {
+            "label": "mapping(uint16 => struct LuckyBallV2.Season)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(RequestStatus)7631_storage)": {
+            "label": "mapping(uint256 => struct LuckyBallV2.RequestStatus)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint32,t_array(t_uint32)dyn_storage)": {
+            "label": "mapping(uint32 => uint32[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint32,t_uint256)": {
+            "label": "mapping(uint32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint32,t_uint32)": {
+            "label": "mapping(uint32 => uint32)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(BallGroup)7591_storage": {
+            "label": "struct LuckyBallV2.BallGroup",
+            "members": [
+              {
+                "label": "endBallId",
+                "type": "t_uint32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "owner",
+                "type": "t_address",
+                "offset": 4,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RequestStatus)7631_storage": {
+            "label": "struct LuckyBallV2.RequestStatus",
+            "members": [
+              {
+                "label": "exists",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "isSeasonPick",
+                "type": "t_bool",
+                "offset": 1,
+                "slot": "0"
+              },
+              {
+                "label": "seed",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Season)7602_storage": {
+            "label": "struct LuckyBallV2.Season",
+            "members": [
+              {
+                "label": "seasonId",
+                "type": "t_uint16",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "startBallId",
+                "type": "t_uint32",
+                "offset": 2,
+                "slot": "0"
+              },
+              {
+                "label": "endBallId",
+                "type": "t_uint32",
+                "offset": 6,
+                "slot": "0"
+              },
+              {
+                "label": "winningBallId",
+                "type": "t_uint32",
+                "offset": 10,
+                "slot": "0"
+              },
+              {
+                "label": "winningCode",
+                "type": "t_uint32",
+                "offset": 14,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint16": {
+            "label": "uint16",
+            "numberOfBytes": "2"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "ff51113c2608fd2d908250cc344b4dea93eb2fd53ae1c543ff7dd7db781c9dd4": {
+      "address": "0x5B476CF98Ac5ad6EbdCCA3AE5D0E2cbD96379923",
+      "txHash": "0x0290f8b56d2277c36246464a581401b10af4810b2297cb2dbdd143a475197825",
+      "layout": {
+        "solcVersion": "0.8.18",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:68"
+          },
+          {
+            "label": "vrfCoordinator",
+            "offset": 2,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "VRFConsumerBaseV2Upgradeable",
+            "src": "contracts/LuckyBall_V2_2.sol:19"
+          },
+          {
+            "label": "_ballId",
+            "offset": 22,
+            "slot": "0",
+            "type": "t_uint32",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:62"
+          },
+          {
+            "label": "_seasonId",
+            "offset": 26,
+            "slot": "0",
+            "type": "t_uint16",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:63"
+          },
+          {
+            "label": "_revealGroupId",
+            "offset": 28,
+            "slot": "0",
+            "type": "t_uint32",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:64"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:65"
+          },
+          {
+            "label": "_operator",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_address",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:66"
+          },
+          {
+            "label": "ballCount",
+            "offset": 20,
+            "slot": "2",
+            "type": "t_uint32",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:67"
+          },
+          {
+            "label": "revealNeeded",
+            "offset": 24,
+            "slot": "2",
+            "type": "t_bool",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:68"
+          },
+          {
+            "label": "ballGroups",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_array(t_struct(BallGroup)736_storage)dyn_storage",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:83"
+          },
+          {
+            "label": "COORDINATOR",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_contract(VRFCoordinatorV2Interface)153",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:86"
+          },
+          {
+            "label": "s_subscriptionId",
+            "offset": 20,
+            "slot": "4",
+            "type": "t_uint64",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:87"
+          },
+          {
+            "label": "s_keyHash",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_bytes32",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:89"
+          },
+          {
+            "label": "lastRequestId",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_uint256",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:93"
+          },
+          {
+            "label": "s_requests",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_uint256,t_struct(RequestStatus)776_storage)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:100"
+          },
+          {
+            "label": "DOMAIN_SEPARATOR",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_bytes32",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:104"
+          },
+          {
+            "label": "_nonces",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:105"
+          },
+          {
+            "label": "seasons",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_mapping(t_uint16,t_struct(Season)747_storage)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:108"
+          },
+          {
+            "label": "userBallGroups",
+            "offset": 0,
+            "slot": "11",
+            "type": "t_mapping(t_address,t_mapping(t_uint16,t_array(t_uint32)dyn_storage))",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:109"
+          },
+          {
+            "label": "revealGroups",
+            "offset": 0,
+            "slot": "12",
+            "type": "t_mapping(t_uint32,t_uint32)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:110"
+          },
+          {
+            "label": "revealGroupSeeds",
+            "offset": 0,
+            "slot": "13",
+            "type": "t_mapping(t_uint32,t_uint256)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:111"
+          },
+          {
+            "label": "newRevealPos",
+            "offset": 0,
+            "slot": "14",
+            "type": "t_mapping(t_address,t_uint32)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:112"
+          },
+          {
+            "label": "ballPosByRevealGroup",
+            "offset": 0,
+            "slot": "15",
+            "type": "t_mapping(t_uint32,t_array(t_uint32)dyn_storage)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:114"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_struct(BallGroup)736_storage)dyn_storage": {
+            "label": "struct LuckyBallV2.BallGroup[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint32)dyn_storage": {
+            "label": "uint32[]",
+            "numberOfBytes": "32"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(VRFCoordinatorV2Interface)153": {
+            "label": "contract VRFCoordinatorV2Interface",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_mapping(t_uint16,t_array(t_uint32)dyn_storage))": {
+            "label": "mapping(address => mapping(uint16 => uint32[]))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint32)": {
+            "label": "mapping(address => uint32)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint16,t_array(t_uint32)dyn_storage)": {
+            "label": "mapping(uint16 => uint32[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint16,t_struct(Season)747_storage)": {
+            "label": "mapping(uint16 => struct LuckyBallV2.Season)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(RequestStatus)776_storage)": {
+            "label": "mapping(uint256 => struct LuckyBallV2.RequestStatus)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint32,t_array(t_uint32)dyn_storage)": {
+            "label": "mapping(uint32 => uint32[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint32,t_uint256)": {
+            "label": "mapping(uint32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint32,t_uint32)": {
+            "label": "mapping(uint32 => uint32)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(BallGroup)736_storage": {
+            "label": "struct LuckyBallV2.BallGroup",
+            "members": [
+              {
+                "label": "endBallId",
+                "type": "t_uint32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "owner",
+                "type": "t_address",
+                "offset": 4,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RequestStatus)776_storage": {
+            "label": "struct LuckyBallV2.RequestStatus",
+            "members": [
+              {
+                "label": "exists",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "isSeasonPick",
+                "type": "t_bool",
+                "offset": 1,
+                "slot": "0"
+              },
+              {
+                "label": "seed",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Season)747_storage": {
+            "label": "struct LuckyBallV2.Season",
+            "members": [
+              {
+                "label": "seasonId",
+                "type": "t_uint16",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "startBallId",
+                "type": "t_uint32",
+                "offset": 2,
+                "slot": "0"
+              },
+              {
+                "label": "endBallId",
+                "type": "t_uint32",
+                "offset": 6,
+                "slot": "0"
+              },
+              {
+                "label": "winningBallId",
+                "type": "t_uint32",
+                "offset": 10,
+                "slot": "0"
+              },
+              {
+                "label": "winningCode",
+                "type": "t_uint32",
+                "offset": 14,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint16": {
+            "label": "uint16",
+            "numberOfBytes": "2"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "b44586a332956c9934cff8db71d9548af7aaac0d2c1d4e8a1d1eed44916d1041": {
+      "address": "0x80bAD89Bd3E8386AC45f57cBB552337Cfc40250D",
+      "txHash": "0x387c29e577c3604a8a28b4e4e30d9eb4aa6e9efe13da84c13c71b55b45dd7ca6",
+      "layout": {
+        "solcVersion": "0.8.18",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:68"
+          },
+          {
+            "label": "vrfCoordinator",
+            "offset": 2,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "VRFConsumerBaseV2Upgradeable",
+            "src": "contracts/LuckyBall_V2_2.sol:19"
+          },
+          {
+            "label": "_ballId",
+            "offset": 22,
+            "slot": "0",
+            "type": "t_uint32",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:62"
+          },
+          {
+            "label": "_seasonId",
+            "offset": 26,
+            "slot": "0",
+            "type": "t_uint16",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:63"
+          },
+          {
+            "label": "_revealGroupId",
+            "offset": 28,
+            "slot": "0",
+            "type": "t_uint32",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:64"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:65"
+          },
+          {
+            "label": "_operator",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_address",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:66"
+          },
+          {
+            "label": "ballCount",
+            "offset": 20,
+            "slot": "2",
+            "type": "t_uint32",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:67"
+          },
+          {
+            "label": "revealNeeded",
+            "offset": 24,
+            "slot": "2",
+            "type": "t_bool",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:68"
+          },
+          {
+            "label": "ballGroups",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_array(t_struct(BallGroup)736_storage)dyn_storage",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:83"
+          },
+          {
+            "label": "COORDINATOR",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_contract(VRFCoordinatorV2Interface)153",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:86"
+          },
+          {
+            "label": "s_subscriptionId",
+            "offset": 20,
+            "slot": "4",
+            "type": "t_uint64",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:87"
+          },
+          {
+            "label": "s_keyHash",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_bytes32",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:89"
+          },
+          {
+            "label": "lastRequestId",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_uint256",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:93"
+          },
+          {
+            "label": "s_requests",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_uint256,t_struct(RequestStatus)776_storage)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:100"
+          },
+          {
+            "label": "DOMAIN_SEPARATOR",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_bytes32",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:104"
+          },
+          {
+            "label": "_nonces",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:105"
+          },
+          {
+            "label": "seasons",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_mapping(t_uint16,t_struct(Season)747_storage)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:108"
+          },
+          {
+            "label": "userBallGroups",
+            "offset": 0,
+            "slot": "11",
+            "type": "t_mapping(t_address,t_mapping(t_uint16,t_array(t_uint32)dyn_storage))",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:109"
+          },
+          {
+            "label": "revealGroups",
+            "offset": 0,
+            "slot": "12",
+            "type": "t_mapping(t_uint32,t_uint32)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:110"
+          },
+          {
+            "label": "revealGroupSeeds",
+            "offset": 0,
+            "slot": "13",
+            "type": "t_mapping(t_uint32,t_uint256)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:111"
+          },
+          {
+            "label": "newRevealPos",
+            "offset": 0,
+            "slot": "14",
+            "type": "t_mapping(t_address,t_uint32)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:112"
+          },
+          {
+            "label": "ballPosByRevealGroup",
+            "offset": 0,
+            "slot": "15",
+            "type": "t_mapping(t_uint32,t_array(t_uint32)dyn_storage)",
+            "contract": "LuckyBallV2",
+            "src": "contracts/LuckyBall_V2_2.sol:114"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_struct(BallGroup)736_storage)dyn_storage": {
+            "label": "struct LuckyBallV2.BallGroup[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint32)dyn_storage": {
+            "label": "uint32[]",
+            "numberOfBytes": "32"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(VRFCoordinatorV2Interface)153": {
+            "label": "contract VRFCoordinatorV2Interface",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_mapping(t_uint16,t_array(t_uint32)dyn_storage))": {
+            "label": "mapping(address => mapping(uint16 => uint32[]))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint32)": {
+            "label": "mapping(address => uint32)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint16,t_array(t_uint32)dyn_storage)": {
+            "label": "mapping(uint16 => uint32[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint16,t_struct(Season)747_storage)": {
+            "label": "mapping(uint16 => struct LuckyBallV2.Season)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(RequestStatus)776_storage)": {
+            "label": "mapping(uint256 => struct LuckyBallV2.RequestStatus)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint32,t_array(t_uint32)dyn_storage)": {
+            "label": "mapping(uint32 => uint32[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint32,t_uint256)": {
+            "label": "mapping(uint32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint32,t_uint32)": {
+            "label": "mapping(uint32 => uint32)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(BallGroup)736_storage": {
+            "label": "struct LuckyBallV2.BallGroup",
+            "members": [
+              {
+                "label": "endBallId",
+                "type": "t_uint32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "owner",
+                "type": "t_address",
+                "offset": 4,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RequestStatus)776_storage": {
+            "label": "struct LuckyBallV2.RequestStatus",
+            "members": [
+              {
+                "label": "exists",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "isSeasonPick",
+                "type": "t_bool",
+                "offset": 1,
+                "slot": "0"
+              },
+              {
+                "label": "seed",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Season)747_storage": {
+            "label": "struct LuckyBallV2.Season",
             "members": [
               {
                 "label": "seasonId",

@@ -12,25 +12,33 @@ pragma solidity ^0.8.18;
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 
-contract LuckyBall1 is VRFConsumerBaseV2{
+contract LuckyBall2 is VRFConsumerBaseV2{
 
-    uint private _ballId;
-    uint private _seasonId;
-    uint private _revealGroupId;    
+    uint32 private _ballId;
+    uint16 private _seasonId;
+    uint32 private _revealGroupId;    
     address private _owner;
     address private _operator;
 
-    uint[] public ballGroups;
-    address[] public addrGroups;
-    uint public ballCount;
+    //uint[] public ballGroups;
+    //address[] public addrGroups;
+    uint32 public ballCount;
     bool public revealNeeded;
-    struct Season {
-        uint seasonId;
-        uint startBallId;
-        uint endBallId;
-        uint winningBallId;
-        uint winningCode;
+
+    struct BallGroup {
+        uint32 endBallId;
+        address owner;
     }
+
+    struct Season {
+        uint16 seasonId;
+        uint32 startBallId;
+        uint32 endBallId;
+        uint32 winningBallId;
+        uint32 winningCode;
+    }
+
+    BallGroup[] public ballGroups;
 
     //chainlink 
     VRFCoordinatorV2Interface immutable COORDINATOR;
@@ -45,30 +53,32 @@ contract LuckyBall1 is VRFConsumerBaseV2{
     struct RequestStatus {
         bool exists; // whether a requestId exists        
         bool isSeasonPick; //True if this random is for picking up the season BallId winner 
-        uint seed;
+        uint256 seed;
     }
-    mapping(uint => RequestStatus) public s_requests; /* requestId --> requestStatus */   
+    mapping(uint256 => RequestStatus) public s_requests; /* requestId --> requestStatus */   
     //
 
     //EIP 712 related
     bytes32 public DOMAIN_SEPARATOR;
-    mapping (address => uint) private _nonces;
+    mapping (address => uint256) private _nonces;
     //
 
-    mapping(uint => Season) public seasons;
-    mapping(address => mapping(uint => uint[])) public userBallGroups; //user addr => seasonId => ballGroupPos
-    mapping(uint => uint) public revealGroups; //ballId => revealGroupId
-    mapping(uint => uint) public revealGroupSeeds; // revealGroupId => revealSeed 
-    mapping(address => uint) public newRevealPos;
-    mapping(address => mapping(uint => uint)) public userBallCounts; //userAddr => seasonId => count
-    mapping(uint => uint[]) public ballPosByRevealGroup; // revealGroupId => [ballPos]
+    mapping(uint16 => Season) public seasons;
+    mapping(address => mapping(uint16 => uint32[])) public userBallGroups; //user addr => seasonId => ballGroupPos
+    mapping(uint32 => uint32) public revealGroups; //ballId => revealGroupId
+    mapping(uint32 => uint256) public revealGroupSeeds; // revealGroupId => revealSeed 
+    mapping(address => uint32) public newRevealPos;
+    //mapping(address => mapping(uint16 => uint32)) public userBallCounts; //userAddr => seasonId => count
+    mapping(uint32 => uint32[]) public ballPosByRevealGroup; // revealGroupId => [ballPos]
 
-    event BallIssued(uint seasonId, address indexed recipient, uint qty, uint lastBallId);
-    event RevealRequested(uint seasonId, uint revealGroupId, address indexed requestor);
-    event SeasonStarted(uint seasonId);
-    event SeasonEnded(uint seasonId);
-    event CodeSeedRevealed(uint seasonId, uint revealGroupId);
-    event WinnerPicked(uint indexed seasonId, uint ballId);
+    event BallIssued(uint16 seasonId, address indexed recipient, uint32 qty, uint32 endBallId);
+    event RevealRequested(uint16 seasonId, uint32 revealGroupId, address indexed requestor);
+    event SeasonStarted(uint16 seasonId);
+    event SeasonEnded(uint16 seasonId);
+    event CodeSeedRevealed(uint16 seasonId, uint32 revealGroupId);
+    event WinnerPicked(uint16 indexed seasonId, uint32 ballId);
+    event OwnerTransfered(address owner);
+    event SetOperator(address operator);
 
     modifier onlyOperators() {
         require(_operator == msg.sender || _owner == msg.sender, "LuckyBall: caller is not the operator address!");
@@ -101,19 +111,19 @@ contract LuckyBall1 is VRFConsumerBaseV2{
     function getDomainInfo() public view returns (string memory, string memory, uint, address) {
         string memory name = "LuckyBall_Relay";
         string memory version = "1";
-        uint chainId = block.chainid;
+        uint256 chainId = block.chainid;
         address verifyingContract = address(this);
         return (name, version, chainId, verifyingContract);
     }
 
     function getRelayMessageTypes() public pure returns (string memory) {
-      string memory dataTypes = "Relay(address owner,uint256 deadline,uint256 nonce)";
-      return dataTypes;      
+        string memory dataTypes = "Relay(address owner,uint256 deadline,uint256 nonce)";
+        return dataTypes;      
     }
 
     function _setDomainSeparator() internal {
         string memory EIP712_DOMAIN_TYPE = "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
-        ( string memory name, string memory version, uint chainId, address verifyingContract ) = getDomainInfo();
+        ( string memory name, string memory version, uint256 chainId, address verifyingContract ) = getDomainInfo();
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
                 keccak256(abi.encodePacked(EIP712_DOMAIN_TYPE)),
@@ -125,7 +135,7 @@ contract LuckyBall1 is VRFConsumerBaseV2{
         );
     }
 
-    function getEIP712Hash(address _user, uint _deadline, uint _nonce) public view returns (bytes32) {
+    function getEIP712Hash(address _user, uint256 _deadline, uint256 _nonce) public view returns (bytes32) {
         string memory MESSAGE_TYPE = getRelayMessageTypes();
         bytes32 hash = keccak256(
             abi.encodePacked(
@@ -144,7 +154,7 @@ contract LuckyBall1 is VRFConsumerBaseV2{
         return hash;
     }
 
-    function verifySig(address _user, uint _deadline, uint _nonce,  uint8 v, bytes32 r, bytes32 s) public view returns (bool) {
+    function verifySig(address _user, uint256 _deadline, uint256 _nonce,  uint8 v, bytes32 r, bytes32 s) public view returns (bool) {
         bytes32 hash = getEIP712Hash(_user, _deadline, _nonce);
         if (v < 27) {
           v += 27;
@@ -154,48 +164,56 @@ contract LuckyBall1 is VRFConsumerBaseV2{
 
     //
 
-    function setOperator(address _newOperator) public onlyOwner returns (bool) {
-        _operator = _newOperator;
-        return true;
+    function transferOwner(address _newOwner) external onlyOwner {
+        _owner = _newOwner;
+        emit OwnerTransfered(_newOwner);
     }
+
+    function setOperator(address _newOperator) external onlyOwner {
+        _operator = _newOperator;
+        emit SetOperator(_newOperator);
+    }
+
+    function getOwner() public view returns (address) {
+        return _owner;
+    }    
 
     function getOperator() public view returns (address) {
         return _operator;
     }
 
-    function getCurrentSeasonId() public view returns (uint) {
+    function getCurrentSeasonId() public view returns (uint16) {
         return _seasonId;
     }
 
-    function getCurrentBallGroupPos() public view returns (uint) {
-        return ballGroups.length;
+    function getCurrentBallGroupPos() public view returns (uint32) {
+        return uint32(ballGroups.length);
     }
 
-    function getCurrentRevealGroupId() public view returns (uint) {
+    function getCurrentRevealGroupId() public view returns (uint32) {
         return _revealGroupId;
     }     
 
-    function startSeason() external onlyOperators() returns (uint) {
+    function startSeason() external onlyOperators() {
         if (_seasonId > 0 && seasons[_seasonId].winningBallId == 0) {
             revert('LuckyBall: the current season should be ended first');
         }        
         _seasonId++;
-        uint start;
+        uint32 start;
         if (ballGroups.length == 0) {
             start = 1;    
         } else {
-            start = ballGroups[getCurrentBallGroupPos()-1]+1;
+            start = ballGroups[getCurrentBallGroupPos()-1].endBallId + 1;
         }    
 
         seasons[_seasonId] = 
                 Season(_seasonId, 
                         start, 
-                        uint(0), 
-                        uint(0),
+                        0, 
+                        0,
                         generateWinningCode());
 
         emit SeasonStarted(_seasonId);
-        return _seasonId;
     }
 
     function isSeasonActive() public view returns (bool) {
@@ -208,46 +226,64 @@ contract LuckyBall1 is VRFConsumerBaseV2{
         return true;
     }    
 
-    function issueBalls(address[] calldata _tos, uint[] calldata _qty) external onlyOperators() returns (bool) {
+    function issueBalls(address[] calldata _tos, uint32[] calldata _qty) external onlyOperators() returns (bool) {
         require(_tos.length == _qty.length, "LuckBall: address and qty counts do not match");
         require(isSeasonActive(), "LuckyBall: Season is not active");
-        for(uint i=0; i<_tos.length; i++) {
-            require(_qty[i] > 0, "LuckyBall: qty should be bigger than 0");
-            ballCount += _qty[i];
-            ballGroups.push(ballCount);
-            addrGroups.push(_tos[i]);
-            userBallGroups[_tos[i]][_seasonId].push(ballGroups.length-1);
-            userBallCounts[_tos[i]][_seasonId] += _qty[i];
-            emit BallIssued(_seasonId, _tos[i], _qty[i], ballCount);
-        } 
+        uint16 length = uint16(_tos.length); 
+        unchecked {
+            for(uint16 i=0; i<length; ++i) {
+                address to = _tos[i];
+                uint32 qty = _qty[i];
+                require(qty > 0, "LuckyBall: qty should be bigger than 0");
+                ballCount += qty;
+                ballGroups.push(BallGroup(ballCount, to));
+                userBallGroups[to][_seasonId].push(uint32(ballGroups.length-1));
+                emit BallIssued(_seasonId, to, qty, ballCount);
+            } 
+        }
         return true;       
     }
 
-    function getUserBallGroups(address addr, uint seasonId) public view returns (uint[] memory) {
-        uint[] memory myGroups = userBallGroups[addr][seasonId];
-        return myGroups;
+    function getUserBallCount(address user, uint16 seasonId) public view returns (uint32) {
+        uint32[] memory groupPos = userBallGroups[user][seasonId];
+        uint32 count;
+        uint16 length = uint16(groupPos.length);
+        unchecked {
+            for(uint16 i=0; i<length; ++i) {
+                BallGroup memory group = ballGroups[groupPos[i]];
+                uint32 start;
+                //uint32 end;
+                if (groupPos[i]==0) {
+                    start = 0;
+                } else {
+                    start = ballGroups[groupPos[i]-1].endBallId; 
+                }
+                count += group.endBallId - start; 
+            }
+        }
+        return count;
     }
 
-    function ownerOf(uint ballId) public view returns (address) {
+    function ownerOf(uint32 ballId) public view returns (address) {
         if (ballId == 0) {
             return address(0);
         }
-        for(uint i=0; i < ballGroups.length; i++) {
-            if(ballId <= ballGroups[i]) {
-                return addrGroups[i];
+        for(uint32 i=0; i < ballGroups.length; ++i) {
+            if(ballId <= ballGroups[i].endBallId) {
+                return ballGroups[i].owner;
             }
         }
         return address(0);
     }         
 
-    function generateWinningCode() internal view returns (uint) {
-        return extractCode(uint(keccak256(abi.encodePacked(blockhash(block.number -1), block.timestamp))));        
+    function generateWinningCode() internal view returns (uint32) {
+        return extractCode(uint256(keccak256(abi.encodePacked(blockhash(block.number -1), block.timestamp))));        
     }
 
-    function extractCode(uint n) internal pure returns (uint) {
-        uint r = n % 1000000;
+    function extractCode(uint256 n) internal pure returns (uint32) {
+        uint256 r = n % 1000000;
         if (r < 100000) { r += 100000; }
-        return r;
+        return uint32(r);
     } 
 
     function requestReveal() external returns (bool) {
@@ -255,16 +291,18 @@ contract LuckyBall1 is VRFConsumerBaseV2{
     }
 
     function _requestReveal(address _addr) internal returns (bool) {
-        uint[] memory myGroups = userBallGroups[_addr][_seasonId];
-        uint revealGroupId = _revealGroupId;
-        uint newPos = newRevealPos[_addr];
-        require(myGroups.length > 0, "LuckyBall: No balls to reveal");
-        require(myGroups.length > newPos, "LuckyBall: No new balls to reveal");
-        for (uint i=newPos; i < myGroups.length; i++) {
-            revealGroups[myGroups[i]] = revealGroupId;
-            ballPosByRevealGroup[revealGroupId].push(myGroups[i]);
-        }            
-        newRevealPos[_addr] = myGroups.length;
+        uint32[] memory myGroups = userBallGroups[_addr][_seasonId];
+        uint32 myLength = uint32(myGroups.length);
+        uint32 newPos = newRevealPos[_addr];
+        require(myLength > 0, "LuckyBall: No balls to reveal");
+        require(myLength > newPos, "LuckyBall: No new balls to reveal");
+        unchecked {
+            for (uint32 i=newPos; i<myLength; ++i) {
+                revealGroups[myGroups[i]] = _revealGroupId;
+                ballPosByRevealGroup[_revealGroupId].push(myGroups[i]);
+            }          
+        }  
+        newRevealPos[_addr] = myLength;
 
         if (!revealNeeded) {
             revealNeeded = true;
@@ -273,98 +311,105 @@ contract LuckyBall1 is VRFConsumerBaseV2{
         return false;
     }
 
-    function getRevealGroup(uint ballId) public view returns (uint) {
+    function getRevealGroup(uint32 ballId) public view returns (uint32) {
         return revealGroups[getBallGroupPos(ballId)];
     }
 
-    function getBallGroupPos(uint ballId) public view returns (uint) {
+    function getBallGroupPos(uint32 ballId) public view returns (uint32) {
+        uint32 groupLength = uint32(ballGroups.length);
         require (ballId > 0 && ballId <= ballCount, "LuckyBall: ballId is out of range");
-        require (ballGroups.length > 0, "LuckBall: No ball issued");
-    
-        for (uint i=ballGroups.length-1; i >= 0; i--) {
-            uint start;
-            if (i == 0) {
-                start = 1;
-            } else {
-                start = ballGroups[i-1]+1;
-            }
-            uint end = ballGroups[i];
+        require (groupLength > 0, "LuckyBall: No ball issued");
+        unchecked {
+            for (uint32 i=groupLength-1; i >= 0; --i) {
+                uint32 start;
+                if (i == 0) {
+                    start = 1;
+                } else {
+                    start = ballGroups[i-1].endBallId + 1;
+                }
+                uint32 end = ballGroups[i].endBallId;
 
-            if (ballId <= end && ballId >= start) {
-                return i;
+                if (ballId <= end && ballId >= start) {
+                    return i;
+                }
+                continue;
             }
-            continue;
         }
-        revert("BallId is not found");
+        revert("LuckyBall: BallId is not found");
     } 
 
-    function getBallCode(uint ballId) public view returns (uint) {
-        uint randSeed = revealGroupSeeds[getRevealGroup(ballId)];
-        if (randSeed > uint(0)) {
+    function getBallCode(uint32 ballId) public view returns (uint32) {
+        uint256 randSeed = revealGroupSeeds[getRevealGroup(ballId)];
+        if (randSeed > 0) {
             return extractCode(uint(keccak256(abi.encodePacked(randSeed, ballId))));
         }
-        return uint(0);
+        return uint32(0);
     }
 
-    function getBalls(address addr, uint seasonId) public view returns (uint[] memory) {
-        uint[] memory myGroups = userBallGroups[addr][seasonId];
-        uint[] memory ballIds = new uint[](userBallCounts[addr][seasonId]);
+    function getBalls(address addr, uint16 seasonId) public view returns (uint32[] memory) {
+        uint32[] memory myGroups = userBallGroups[addr][seasonId];
+        uint32[] memory ballIds = new uint32[](getUserBallCount(addr, seasonId));
 
-        uint pos = 0;
-        for (uint i=0; i < myGroups.length; i++) {
-            uint end = ballGroups[myGroups[i]];
-            uint start;
-            if (myGroups[i] == 0) {
-                start = 1;    
-            } else {
-                start = ballGroups[myGroups[i] - 1] + 1;
+        uint256 pos = 0;
+        unchecked {
+            for (uint256 i=0; i < myGroups.length; ++i) {
+                uint32 end = ballGroups[myGroups[i]].endBallId;
+                uint32 start;
+                if (myGroups[i] == 0) {
+                    start = 1;    
+                } else {
+                    start = ballGroups[myGroups[i] - 1].endBallId + 1;
+                }
+                for (uint32 j=start; j<=end; ++j) {
+                    ballIds[pos] = j;
+                    ++pos;
+                }                           
             }
-            for (uint j=start; j<=end; j++) {
-                ballIds[pos] = j;
-                pos++;
-            }                           
         }
         return ballIds;
     }
 
-    function getBalls() public view returns(uint[] memory) {
+    function getBalls() public view returns(uint32[] memory) {
         return getBalls(msg.sender, _seasonId);
     }
 
-    function getBallsByRevealGroup(uint revealGroupId) public view returns (uint[] memory) {
-        uint[] memory ballPos = ballPosByRevealGroup[revealGroupId];
-        uint groupBallCount;
-        for (uint i=0; i < ballPos.length; i++) {
-            uint start;
-            uint end = ballGroups[ballPos[i]];
-            if (ballPos[i] == 0) {
-                start = 1;
-            } else {
-                start = ballGroups[ballPos[i] - 1] + 1;
+    function getBallsByRevealGroup(uint32 revealGroupId) public view returns (uint32[] memory) {
+        uint32[] memory ballPos = ballPosByRevealGroup[revealGroupId];
+        uint256 posLength = ballPos.length;
+        uint32 groupBallCount;
+        unchecked {
+            for (uint256 i=0; i < posLength; i++) {
+                uint32 start;
+                uint32 end = ballGroups[ballPos[i]].endBallId;
+                if (ballPos[i] == 0) {
+                    start = 1;
+                } else {
+                    start = ballGroups[ballPos[i] - 1].endBallId + 1; 
+                }
+                groupBallCount += (end - start + 1);
             }
-            groupBallCount += (end - start + 1);
+            uint32[] memory ballIds = new uint32[](groupBallCount);
+            uint256 pos = 0;
+            for (uint256 i=0; i < posLength; i++) {
+                uint32 end = ballGroups[ballPos[i]].endBallId;            
+                uint32 start;
+                if (ballPos[i] == 0) {
+                    start = 1;
+                } else {
+                    start = ballGroups[ballPos[i] - 1].endBallId + 1; 
+                }
+                for (uint32 j=start; j <= end; j++) {
+                    ballIds[pos] = j;
+                    pos++;
+                }
+            }
+            return ballIds;
         }
-        uint[] memory ballIds = new uint[](groupBallCount);
-        uint pos = 0;
-        for (uint i=0; i < ballPos.length; i++) {
-            uint end = ballGroups[ballPos[i]];            
-            uint start;
-            if (ballPos[i] == 0) {
-                start = 1;
-            } else {
-                start = ballGroups[ballPos[i] - 1] + 1;
-            }
-            for (uint j=start; j <= end; j++) {
-                ballIds[pos] = j;
-                pos++;
-            }
-        }
-        return ballIds;
     }
 
     function relayRequestReveal(        
         address user,
-        uint deadline,
+        uint256 deadline,
         uint8 v,
         bytes32 r,
         bytes32 s) 
@@ -380,51 +425,45 @@ contract LuckyBall1 is VRFConsumerBaseV2{
 
     function relayRequestRevealBatch(
         address[] calldata users,
-        uint[] calldata deadlines,
+        uint256[] calldata deadlines,
         uint8[] calldata vs,
         bytes32[] calldata rs,
         bytes32[] calldata ss) 
         public returns(bool) {
         
-        for(uint i=0; i<users.length; i++) {
+        for(uint256 i=0; i<users.length; i++) {
             relayRequestReveal(users[i],deadlines[i], vs[i], rs[i], ss[i]);
         }
         return true;
     }
 
     function endSeason() external onlyOperators() returns (bool) {
-        if (ballGroups.length == 0) {
-            return false;
-        }
+        require(ballGroups.length > 0, "LuckyBall: No balls issued yet");
         if (revealNeeded) {
             requestRevealGroupSeed();
         }
-        uint endBallId = ballGroups[ballGroups.length-1];
-        if (endBallId == seasons[_seasonId].endBallId ) {
-            return false;
-        }
-        seasons[_seasonId].endBallId = endBallId;
+        seasons[_seasonId].endBallId = ballGroups[ballGroups.length-1].endBallId;
         requestRandomSeed(true); 
         return true;
     }
 
-    function requestRevealGroupSeed() public onlyOperators() returns (uint) {
+    function requestRevealGroupSeed() public onlyOperators() returns (uint256) {
         if (revealNeeded) {
             return requestRandomSeed(false);
         } else {
-            return 0;      
+            return uint256(0);      
         }
     }
 
-    function setRevealGroupSeed(uint randSeed) internal {
+    function setRevealGroupSeed(uint256 randSeed) internal {
         revealGroupSeeds[_revealGroupId] = randSeed;
         emit CodeSeedRevealed(_seasonId, _revealGroupId);
         revealNeeded = false;        
         _revealGroupId++;
     }
 
-    function requestRandomSeed(bool _isSeasonPick) internal returns (uint) {
-        uint requestId = COORDINATOR.requestRandomWords(
+    function requestRandomSeed(bool _isSeasonPick) internal returns (uint256) {
+        uint256 requestId = COORDINATOR.requestRandomWords(
             s_keyHash,
             s_subscriptionId,
             requestConfirmations,
@@ -436,10 +475,10 @@ contract LuckyBall1 is VRFConsumerBaseV2{
         return requestId;    
     }
 
-    function setSeasonWinner(uint randSeed) internal {
+    function setSeasonWinner(uint256 randSeed) internal {
         Season storage season = seasons[_seasonId];
-        uint seasonBallCount = season.endBallId - season.startBallId + 1;
-        season.winningBallId = season.startBallId + (randSeed % seasonBallCount);
+        uint256 seasonBallCount = uint256(season.endBallId - season.startBallId + 1);
+        season.winningBallId = season.startBallId + uint32(randSeed % seasonBallCount);
         emit WinnerPicked(_seasonId, season.winningBallId); 
         emit SeasonEnded(_seasonId);
     }    
@@ -448,7 +487,7 @@ contract LuckyBall1 is VRFConsumerBaseV2{
         uint256 requestId,
         uint256[] memory randomWords
     ) internal override {
-        uint seed =  uint(keccak256(abi.encodePacked(randomWords[0], block.timestamp)));
+        uint256 seed =  uint(keccak256(abi.encodePacked(randomWords[0], block.timestamp)));
         s_requests[requestId].seed = seed;
         if (s_requests[requestId].isSeasonPick) {
             setSeasonWinner(seed);

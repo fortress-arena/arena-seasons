@@ -4,24 +4,66 @@
  * @author Atomrigs Lab
  *
  * Supports ChainLink VRF_V2
- * Using EIP712 signTypedData_v4 for relay signature verification
+ * Supports Relay transaction using EIP712 signTypedData_v4 for relay signature verification
+ * Supports BeaconProxy Upgradeable pattern
  **/
 
 pragma solidity ^0.8.18;
 
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol"; 
 
-contract LuckyBall2 is VRFConsumerBaseV2{
+abstract contract VRFConsumerBaseV2Upgradeable is Initializable {
+    error OnlyCoordinatorCanFulfill(address have, address want);
+    address private vrfCoordinator;
+
+    function __VRFConsumerBaseV2Upgradeable_init(
+        address _vrfCoordinator
+    ) internal onlyInitializing {
+        vrfCoordinator = _vrfCoordinator;
+    }
+
+    /**
+     * @notice fulfillRandomness handles the VRF response. Your contract must
+     * @notice implement it. See "SECURITY CONSIDERATIONS" above for important
+     * @notice principles to keep in mind when implementing your fulfillRandomness
+     * @notice method.
+     *
+     * @dev VRFConsumerBaseV2 expects its subcontracts to have a method with this
+     * @dev signature, and will call it once it has verified the proof
+     * @dev associated with the randomness. (It is triggered via a call to
+     * @dev rawFulfillRandomness, below.)
+     *
+     * @param requestId The Id initially returned by requestRandomness
+     * @param randomWords the VRF output expanded to the requested number of words
+     */
+    function fulfillRandomWords(
+        uint256 requestId,
+        uint256[] memory randomWords
+    ) internal virtual;
+
+    // rawFulfillRandomness is called by VRFCoordinator when it receives a valid VRF
+    // proof. rawFulfillRandomness then calls fulfillRandomness, after validating
+    // the origin of the call
+    function rawFulfillRandomWords(
+        uint256 requestId,
+        uint256[] memory randomWords
+    ) external {
+        if (msg.sender != vrfCoordinator) {
+            revert OnlyCoordinatorCanFulfill(msg.sender, vrfCoordinator);
+        }
+        fulfillRandomWords(requestId, randomWords);
+    }
+}
+
+contract LuckyBall is VRFConsumerBaseV2Upgradeable{
 
     uint32 private _ballId;
     uint16 private _seasonId;
     uint32 private _revealGroupId;    
     address private _owner;
     address private _operator;
-
-    //uint[] public ballGroups;
-    //address[] public addrGroups;
     uint32 public ballCount;
     bool public revealNeeded;
 
@@ -41,10 +83,10 @@ contract LuckyBall2 is VRFConsumerBaseV2{
     BallGroup[] public ballGroups;
 
     //chainlink 
-    VRFCoordinatorV2Interface immutable COORDINATOR;
-    uint64 immutable s_subscriptionId; //= 5320; //https://vrf.chain.link/
-    //address immutable vrfCoordinator; //= 0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed; //Mumbai 
-    bytes32 immutable s_keyHash; // = 0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f;
+    VRFCoordinatorV2Interface COORDINATOR;
+    uint64 s_subscriptionId; //= 5320; //https://vrf.chain.link/
+    //address vrfCoordinator; //= 0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed; //Mumbai 
+    bytes32 s_keyHash; // = 0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f;
     uint32 constant callbackGasLimit = 400000;
     uint16 constant requestConfirmations = 3;
     uint32 constant numWords =  1;
@@ -55,10 +97,10 @@ contract LuckyBall2 is VRFConsumerBaseV2{
         bool isSeasonPick; //True if this random is for picking up the season BallId winner 
         uint256 seed;
     }
-    mapping(uint256 => RequestStatus) public s_requests; /* requestId --> requestStatus */   
+    mapping(uint256 => RequestStatus) public s_requests; // requestId --> requestStatus 
     //
 
-    //EIP 712 related
+    //** EIP 712 related
     bytes32 public DOMAIN_SEPARATOR;
     mapping (address => uint256) private _nonces;
     //
@@ -89,23 +131,24 @@ contract LuckyBall2 is VRFConsumerBaseV2{
         _;
     }       
 
-    constructor(
-        uint64 subscriptionId,
-        address vrfCoordinator,
-        bytes32 keyHash
-    ) VRFConsumerBaseV2(vrfCoordinator) {
-        COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
-        s_keyHash = keyHash;
-        s_subscriptionId = subscriptionId;
-        _revealGroupId++;
+    function initialize(
+        uint64 _subscriptionId,
+        address _vrfCoordinator,
+        bytes32 _keyHash
+    ) public initializer {
+        require(_owner == address(0), "LuckyBall: already initialized"); 
+        __VRFConsumerBaseV2Upgradeable_init(_vrfCoordinator);
+        COORDINATOR = VRFCoordinatorV2Interface(_vrfCoordinator);
+        s_keyHash = _keyHash;
+        s_subscriptionId = _subscriptionId;
         _owner = msg.sender;
-        _operator = msg.sender;
         _setDomainSeparator(); //EIP712
+        _revealGroupId++;
     }
 
-    // EIP 712 and Relay functions
-    function nonces(address user) public view returns (uint256) {
-        return _nonces[user];
+    //** EIP 712 and Relay functions
+    function nonces(address _user) public view returns (uint256) {
+        return _nonces[_user];
     }   
 
     function getDomainInfo() public view returns (string memory, string memory, uint, address) {
@@ -162,7 +205,7 @@ contract LuckyBall2 is VRFConsumerBaseV2{
         return _user == ecrecover(hash, v, r, s);
     }
 
-    //
+    //**
 
     function transferOwner(address _newOwner) external onlyOwner {
         _owner = _newOwner;
@@ -205,7 +248,6 @@ contract LuckyBall2 is VRFConsumerBaseV2{
         } else {
             start = ballGroups[getCurrentBallGroupPos()-1].endBallId + 1;
         }    
-
         seasons[_seasonId] = 
                 Season(_seasonId, 
                         start, 
@@ -226,12 +268,12 @@ contract LuckyBall2 is VRFConsumerBaseV2{
         return true;
     }    
 
-    function issueBalls(address[] calldata _tos, uint32[] calldata _qty) external onlyOperators() returns (bool) {
+    function issueBalls(address[] calldata _tos, uint32[] calldata _qty) external onlyOperators() {
         require(_tos.length == _qty.length, "LuckBall: address and qty counts do not match");
         require(isSeasonActive(), "LuckyBall: Season is not active");
-        uint16 length = uint16(_tos.length); 
+        uint256 length = _tos.length; 
         unchecked {
-            for(uint16 i=0; i<length; ++i) {
+            for(uint256 i=0; i<length; ++i) {
                 address to = _tos[i];
                 uint32 qty = _qty[i];
                 require(qty > 0, "LuckyBall: qty should be bigger than 0");
@@ -241,15 +283,14 @@ contract LuckyBall2 is VRFConsumerBaseV2{
                 emit BallIssued(_seasonId, to, qty, ballCount);
             } 
         }
-        return true;       
     }
 
-    function getUserBallCount(address user, uint16 seasonId) public view returns (uint32) {
-        uint32[] memory groupPos = userBallGroups[user][seasonId];
+    function getUserBallCount(address _user, uint16 seasonId_) public view returns (uint32) {
+        uint32[] memory groupPos = userBallGroups[_user][seasonId_];
         uint32 count;
-        uint16 length = uint16(groupPos.length);
+        uint256 length = groupPos.length;
         unchecked {
-            for(uint16 i=0; i<length; ++i) {
+            for(uint256 i=0; i<length; ++i) {
                 BallGroup memory group = ballGroups[groupPos[i]];
                 uint32 start;
                 //uint32 end;
@@ -264,12 +305,13 @@ contract LuckyBall2 is VRFConsumerBaseV2{
         return count;
     }
 
-    function ownerOf(uint32 ballId) public view returns (address) {
-        if (ballId == 0) {
+    function ownerOf(uint32 ballId_) public view returns (address) {
+        if (ballId_ == 0) {
             return address(0);
         }
-        for(uint32 i=0; i < ballGroups.length; ++i) {
-            if(ballId <= ballGroups[i].endBallId) {
+        uint256 length = ballGroups.length;
+        for(uint256 i=0; i < length; ++i) {
+            if(ballId_ <= ballGroups[i].endBallId) {
                 return ballGroups[i].owner;
             }
         }
@@ -292,17 +334,17 @@ contract LuckyBall2 is VRFConsumerBaseV2{
 
     function _requestReveal(address _addr) internal returns (bool) {
         uint32[] memory myGroups = userBallGroups[_addr][_seasonId];
-        uint32 myLength = uint32(myGroups.length);
+        uint256 myLength = myGroups.length;
         uint32 newPos = newRevealPos[_addr];
         require(myLength > 0, "LuckyBall: No balls to reveal");
         require(myLength > newPos, "LuckyBall: No new balls to reveal");
         unchecked {
-            for (uint32 i=newPos; i<myLength; ++i) {
+            for (uint256 i=newPos; i<myLength; ++i) {
                 revealGroups[myGroups[i]] = _revealGroupId;
                 ballPosByRevealGroup[_revealGroupId].push(myGroups[i]);
             }          
         }  
-        newRevealPos[_addr] = myLength;
+        newRevealPos[_addr] = uint32(myLength);
 
         if (!revealNeeded) {
             revealNeeded = true;
@@ -311,13 +353,13 @@ contract LuckyBall2 is VRFConsumerBaseV2{
         return false;
     }
 
-    function getRevealGroup(uint32 ballId) public view returns (uint32) {
-        return revealGroups[getBallGroupPos(ballId)];
+    function getRevealGroup(uint32 ballId_) public view returns (uint32) {
+        return revealGroups[getBallGroupPos(ballId_)];
     }
 
-    function getBallGroupPos(uint32 ballId) public view returns (uint32) {
+    function getBallGroupPos(uint32 ballId_) public view returns (uint32) {
         uint32 groupLength = uint32(ballGroups.length);
-        require (ballId > 0 && ballId <= ballCount, "LuckyBall: ballId is out of range");
+        require (ballId_ > 0 && ballId_ <= ballCount, "LuckyBall: ballId is out of range");
         require (groupLength > 0, "LuckyBall: No ball issued");
         unchecked {
             for (uint32 i=groupLength-1; i >= 0; --i) {
@@ -329,7 +371,7 @@ contract LuckyBall2 is VRFConsumerBaseV2{
                 }
                 uint32 end = ballGroups[i].endBallId;
 
-                if (ballId <= end && ballId >= start) {
+                if (ballId_ <= end && ballId_ >= start) {
                     return i;
                 }
                 continue;
@@ -338,10 +380,10 @@ contract LuckyBall2 is VRFConsumerBaseV2{
         revert("LuckyBall: BallId is not found");
     } 
 
-    function getBallCode(uint32 ballId) public view returns (uint32) {
-        uint256 randSeed = revealGroupSeeds[getRevealGroup(ballId)];
+    function getBallCode(uint32 ballId_) public view returns (uint32) {
+        uint256 randSeed = revealGroupSeeds[getRevealGroup(ballId_)];
         if (randSeed > 0) {
-            return extractCode(uint(keccak256(abi.encodePacked(randSeed, ballId))));
+            return extractCode(uint(keccak256(abi.encodePacked(randSeed, ballId_))));
         }
         return uint32(0);
     }
@@ -430,8 +472,8 @@ contract LuckyBall2 is VRFConsumerBaseV2{
         bytes32[] calldata rs,
         bytes32[] calldata ss) 
         public returns(bool) {
-        
-        for(uint256 i=0; i<users.length; i++) {
+        uint256 length = users.length;
+        for(uint256 i=0; i<length; i++) {
             relayRequestReveal(users[i],deadlines[i], vs[i], rs[i], ss[i]);
         }
         return true;
