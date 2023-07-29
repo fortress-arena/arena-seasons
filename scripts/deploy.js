@@ -4,13 +4,22 @@
 // You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
 // will compile your contracts, add the Hardhat Runtime Environment's members to the
 // global scope, and execute the script.
+const hre = require("hardhat");
+const axios = require("axios");
 const { ethers, upgrades } = require("hardhat");
 
+
+const gasUrls = {
+  polygon:  'https://gasstation.polygon.technology/v2', // Polygon Pos Mainet
+  mumbai: 'https://gasstation-testnet.polygon.technology/v2' // Polygon Mumbai
+}
+
 const getFeeOption = async () => {
-  const feeData =  await provider.getFeeData()
-  const maxFeePerGas = feeData.maxFeePerGas + ethers.parseUnits('5', 'gwei')
-  const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas + ethers.parseUnits('3', 'gwei')
-  return { maxFeePerGas, maxPriorityFeePerGas }
+  const data =  (await axios(gasUrls[hre.network.name])).data
+  return {
+    maxFeePerGas: ethers.parseUnits(Math.ceil(data.fast.maxFee).toString(), 'gwei'),
+    maxPriorityFeePerGas: ethers.parseUnits(Math.ceil(data.standard.maxPriorityFee).toString(), 'gwei')
+  }
 }
 
 async function main() {
@@ -19,18 +28,26 @@ async function main() {
   const keyHash = "0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f";
 
   LuckyBallContract = await ethers.getContractFactory("LuckyBall");
-  const { owner } = await ethers.getSigners();
+  LuckyBallContract.runner.provider.getFeeData = async () => await getFeeOption()
+  const [signer] = await ethers.getSigners();
+  signer.provider.getFeeData = async () => await getFeeOption();
+  LuckyBallContract.connect(signer);
+
 
   //let s_keyHash = "0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc";   
 
   //beacon proxy
+  console.log('network: ', hre.network.name);
   const beacon = await upgrades.deployBeacon(LuckyBallContract);
   await beacon.waitForDeployment();
   console.log('beacon contract deployed at ', await beacon.getAddress());
   const proxy = await upgrades.deployBeaconProxy(beacon, LuckyBallContract, [subscriptionId, vrfCoordinator, keyHash]);
   await proxy.waitForDeployment();
   console.log('proxy contract deployed at ', await proxy.getAddress());
-  console.log('implementation contract deployed at ', await beacon.implementation());
+  const implementation = await beacon.implementation()
+  console.log('implementation contract deployed at ', implementation);
+  await hre.run("verify:verify", { address: implementation });
+
 }
 
 async function upgrade(beaconAddr, proxyAddr) {

@@ -284,7 +284,7 @@ describe("LuckyBall core", function () {
     let seasonId = await contract.getCurrentSeasonId();    
     await expect(contract.connect(user1).requestReveal())
     .to.emit(contract, "RevealRequested")
-    .withArgs(seasonId, 1, user1.address);
+    .withArgs(seasonId, 1, user1.address, 100);
 
     let revealGroup = await contract.getRevealGroup(1);
     let revealGroup2 = await contract.getRevealGroup(101);
@@ -402,7 +402,7 @@ describe("LuckyBall core", function () {
     await upgrades.upgradeBeacon(await beacon.getAddress(), ContractV2);
     const contract2 = ContractV2.attach(await contract.getAddress());
     expect(await contract2.getAddress()).to.equal(await contract.getAddress());
-    expect(await contract2.versionCheck()).to.equal(2);
+    expect(await contract2.getVersion()).to.equal("2");
   });  
 
 });

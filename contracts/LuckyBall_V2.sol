@@ -114,7 +114,7 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
     mapping(uint32 => uint32[]) public ballPosByRevealGroup; // revealGroupId => [ballPos]
 
     event BallIssued(uint16 seasonId, address indexed recipient, uint32 qty, uint32 endBallId);
-    event RevealRequested(uint16 seasonId, uint32 revealGroupId, address indexed requestor);
+    event RevealRequested(uint16 seasonId, uint32 revealGroupId, address indexed requestor, uint32 endBallId);
     event SeasonStarted(uint16 seasonId);
     event SeasonEnded(uint16 seasonId);
     event CodeSeedRevealed(uint16 seasonId, uint32 revealGroupId);
@@ -146,6 +146,10 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
         _revealGroupId++;
     }
 
+    function getVersion() public pure returns (string memory) {
+        return "1";
+    }
+
     //** EIP 712 and Relay functions
     function nonces(address _user) public view returns (uint256) {
         return _nonces[_user];
@@ -153,7 +157,7 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
 
     function getDomainInfo() public view returns (string memory, string memory, uint, address) {
         string memory name = "LuckyBall_Relay";
-        string memory version = "1";
+        string memory version = getVersion();
         uint256 chainId = block.chainid;
         address verifyingContract = address(this);
         return (name, version, chainId, verifyingContract);
@@ -305,6 +309,11 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
         return count;
     }
 
+    function getUserBallGroups(address addr, uint16 seasonId) public view returns (uint32[] memory) {
+        uint32[] memory myGroups = userBallGroups[addr][seasonId];
+        return myGroups;
+    }    
+
     function ownerOf(uint32 ballId_) public view returns (address) {
         if (ballId_ == 0) {
             return address(0);
@@ -334,7 +343,7 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
 
     function _requestReveal(address _addr) internal returns (bool) {
         uint32[] memory myGroups = userBallGroups[_addr][_seasonId];
-        uint256 myLength = myGroups.length;
+        uint32 myLength = uint32(myGroups.length);
         uint32 newPos = newRevealPos[_addr];
         require(myLength > 0, "LuckyBall: No balls to reveal");
         require(myLength > newPos, "LuckyBall: No new balls to reveal");
@@ -344,12 +353,12 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
                 ballPosByRevealGroup[_revealGroupId].push(myGroups[i]);
             }          
         }  
-        newRevealPos[_addr] = uint32(myLength);
+        newRevealPos[_addr] = myLength;
 
         if (!revealNeeded) {
             revealNeeded = true;
         }
-        emit RevealRequested(_seasonId, _revealGroupId, _addr);
+        emit RevealRequested(_seasonId, _revealGroupId, _addr, ballGroups[myGroups[myLength-1]].endBallId);
         return false;
     }
 

@@ -33,6 +33,14 @@ module.exports = {
         mnemonic: process.env.MNEMONIC,
       }
     },
+
+    polygon: {
+      url: 'https://polygon.g.alchemy.com/v2/' + process.env.ALCHEMY_API_KEY,
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+      }
+    },
+
     ganache: {
       url: "http://127.0.0.1:8545",
     }    

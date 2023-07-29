@@ -101,7 +101,7 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
     //
 
     //** EIP 712 related
-    bytes32 private DOMAIN_SEPARATOR;
+    bytes32 public DOMAIN_SEPARATOR;
     mapping (address => uint256) private _nonces;
     //
 
@@ -114,7 +114,7 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
     mapping(uint32 => uint32[]) public ballPosByRevealGroup; // revealGroupId => [ballPos]
 
     event BallIssued(uint16 seasonId, address indexed recipient, uint32 qty, uint32 endBallId);
-    event RevealRequested(uint16 seasonId, uint32 revealGroupId, address indexed requestor);
+    event RevealRequested(uint16 seasonId, uint32 revealGroupId, address indexed requestor, uint32 newPos);
     event SeasonStarted(uint16 seasonId);
     event SeasonEnded(uint16 seasonId);
     event CodeSeedRevealed(uint16 seasonId, uint32 revealGroupId);
@@ -130,7 +130,8 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
         require(_owner == msg.sender, "LuckyBall: caller is not the owner address!");
         _;
     }       
-/* Omitted for version 2
+
+/*
     function initialize(
         uint64 _subscriptionId,
         address _vrfCoordinator,
@@ -168,7 +169,7 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
         return dataTypes;      
     }
 
-    function _setDomainSeparator() public {
+    function _setDomainSeparator() internal {
         string memory EIP712_DOMAIN_TYPE = "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
         ( string memory name, string memory version, uint256 chainId, address verifyingContract ) = getDomainInfo();
         DOMAIN_SEPARATOR = keccak256(
@@ -289,11 +290,6 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
         }
     }
 
-    function getUserBallGroups(address addr, uint16 seasonId) public view returns (uint32[] memory) {
-        uint32[] memory myGroups = userBallGroups[addr][seasonId];
-        return myGroups;
-    }    
-
     function getUserBallCount(address _user, uint16 seasonId_) public view returns (uint32) {
         uint32[] memory groupPos = userBallGroups[_user][seasonId_];
         uint32 count;
@@ -343,7 +339,7 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
 
     function _requestReveal(address _addr) internal returns (bool) {
         uint32[] memory myGroups = userBallGroups[_addr][_seasonId];
-        uint256 myLength = myGroups.length;
+        uint32 myLength = uint32(myGroups.length);
         uint32 newPos = newRevealPos[_addr];
         require(myLength > 0, "LuckyBall: No balls to reveal");
         require(myLength > newPos, "LuckyBall: No new balls to reveal");
@@ -353,12 +349,12 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
                 ballPosByRevealGroup[_revealGroupId].push(myGroups[i]);
             }          
         }  
-        newRevealPos[_addr] = uint32(myLength);
+        newRevealPos[_addr] = myLength;
 
         if (!revealNeeded) {
             revealNeeded = true;
         }
-        emit RevealRequested(_seasonId, _revealGroupId, _addr);
+        emit RevealRequested(_seasonId, _revealGroupId, _addr, myLength);
         return false;
     }
 
