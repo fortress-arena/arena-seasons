@@ -109,7 +109,7 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
     mapping(address => mapping(uint16 => uint32[])) public userBallGroups; //user addr => seasonId => ballGroupPos
     mapping(uint32 => uint32) public revealGroups; //ballId => revealGroupId
     mapping(uint32 => uint256) public revealGroupSeeds; // revealGroupId => revealSeed 
-    mapping(address => uint32) public newRevealPos;
+    mapping(address => mapping(uint16 => uint32)) public newRevealPos; //user addr => seasonId => newRevalPos
     //mapping(address => mapping(uint16 => uint32)) public userBallCounts; //userAddr => seasonId => count
     mapping(uint32 => uint32[]) public ballPosByRevealGroup; // revealGroupId => [ballPos]
 
@@ -344,7 +344,7 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
     function _requestReveal(address _addr) internal returns (bool) {
         uint32[] memory myGroups = userBallGroups[_addr][_seasonId];
         uint32 myLength = uint32(myGroups.length);
-        uint32 newPos = newRevealPos[_addr];
+        uint32 newPos = newRevealPos[_addr][_seasonId];
         require(myLength > 0, "LuckyBall: No balls to reveal");
         require(myLength > newPos, "LuckyBall: No new balls to reveal");
         unchecked {
@@ -353,7 +353,7 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
                 ballPosByRevealGroup[_revealGroupId].push(myGroups[i]);
             }          
         }  
-        newRevealPos[_addr] = myLength;
+        newRevealPos[_addr][_seasonId] = myLength;
 
         if (!revealNeeded) {
             revealNeeded = true;

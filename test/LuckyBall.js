@@ -392,6 +392,16 @@ describe("LuckyBall core", function () {
     //console.log(await contract.s_requests(2));
     //console.log(await contract.seasons(1));
     await contract.connect(operator).startSeason();
+    await contract.connect(operator).issueBalls([user1.address, user2.address],[100,200]);
+    await contract.connect(user1).requestReveal();
+    await contract.connect(user2).requestReveal();
+    await contract.connect(operator).requestRevealGroupSeed();    
+    requestId = await contract.lastRequestId();
+    await vrf.connect(owner).fulfillRandomWords(requestId, contract.target);
+    await contract.connect(operator).endSeason();
+    requestId2 = await contract.lastRequestId();   
+    await vrf.connect(owner).fulfillRandomWords(requestId2, contract.target); 
+
     let seasonId = await contract.getCurrentSeasonId();
 
     expect(seasonId).to.equal(2);
