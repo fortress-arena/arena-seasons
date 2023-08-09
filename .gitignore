@@ -142,3 +142,15 @@ artifacts
 
 relayer/storage/data.mdb
 relayer/storage/lock.mdb
+
+node_modules
+.env
+coverage
+coverage.json
+typechain
+typechain-types
+
+# Hardhat files
+cache
+artifacts
+

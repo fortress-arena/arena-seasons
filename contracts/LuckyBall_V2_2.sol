@@ -78,6 +78,7 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
         uint32 endBallId;
         uint32 winningBallId;
         uint32 winningCode;
+        bool isActive;
     }
 
     BallGroup[] public ballGroups;
@@ -242,7 +243,7 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
     }     
 
     function startSeason() external onlyOperators() {
-        if (_seasonId > 0 && seasons[_seasonId].winningBallId == 0) {
+        if (_seasonId > 0 && seasons[_seasonId].isActive) {
             revert('LuckyBall: the current season should be ended first');
         }        
         _seasonId++;
@@ -250,26 +251,21 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
         if (ballGroups.length == 0) {
             start = 1;    
         } else {
-            start = ballGroups[getCurrentBallGroupPos()-1].endBallId + 1;
+            start = ballCount + 1;
         }    
         seasons[_seasonId] = 
                 Season(_seasonId, 
                         start, 
                         0, 
                         0,
-                        generateWinningCode());
+                        generateWinningCode(),
+                        true);
 
         emit SeasonStarted(_seasonId);
     }
 
     function isSeasonActive() public view returns (bool) {
-        if(seasons[_seasonId].winningBallId > 0) {
-            return false;
-        }
-        if (_seasonId == uint(0)) {
-            return false;
-        }
-        return true;
+        return seasons[_seasonId].isActive;
     }    
 
     function issueBalls(address[] calldata _tos, uint32[] calldata _qty) external onlyOperators() {
@@ -493,8 +489,14 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
         if (revealNeeded) {
             requestRevealGroupSeed();
         }
-        seasons[_seasonId].endBallId = ballGroups[ballGroups.length-1].endBallId;
-        requestRandomSeed(true); 
+        if (ballCount >= seasons[_seasonId].startBallId) {
+            seasons[_seasonId].endBallId = ballCount;
+            requestRandomSeed(true); 
+        } else { //no season balls
+            seasons[_seasonId].startBallId = 0;
+            seasons[_seasonId].endBallId = 0;
+        }
+        seasons[_seasonId].isActive = false;
         return true;
     }
 

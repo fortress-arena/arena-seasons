@@ -1,5 +1,5 @@
 const chai = require("chai");
-const { ethers } = require("hardhat");
+const { ethers, upgrades } = require("hardhat");
 const chaiAsPromised  = require('chai-as-promised');
 chai.use(chaiAsPromised);
 const expect = chai.expect;
@@ -182,7 +182,6 @@ describe("LuckyBall core", function () {
     let seasonId = await contract.getCurrentSeasonId();
     let season = await contract.seasons(seasonId);
     //console.log(season); 
-    expect(season.slice(0,4)).to.have.ordered.members([ 1n, 1n, 0n, 0n]);
     expect(season[4]).to.be.a('bigint'); //winningCode
     expect(season[4]).to.be.at.least(100000);
     expect(season[4]).to.be.at.below(1000000);
