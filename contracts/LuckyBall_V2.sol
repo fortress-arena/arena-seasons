@@ -81,6 +81,11 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
         bool isActive;
     }
 
+    struct Attendance {
+        uint8 count;
+        uint32 timestamp;
+    }
+
     BallGroup[] public ballGroups;
 
     //chainlink 
@@ -113,6 +118,7 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
     mapping(address => mapping(uint16 => uint32)) public newRevealPos; //user addr => seasonId => newRevalPos
     //mapping(address => mapping(uint16 => uint32)) public userBallCounts; //userAddr => seasonId => count
     mapping(uint32 => uint32[]) public ballPosByRevealGroup; // revealGroupId => [ballPos]
+    mapping(uint16 => mapping(address => Attendance)) public attendances; //seasonId => user addr => last timestamp
 
     event BallIssued(uint16 seasonId, address indexed recipient, uint32 qty, uint32 endBallId);
     event RevealRequested(uint16 seasonId, uint32 revealGroupId, address indexed requestor, uint32 endBallId);
@@ -552,5 +558,30 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
         } else {
             setRevealGroupSeed(seed);
         }
+    }
+
+    function _attendSeason(address owner) internal {
+        require(seasons[_seasonId].isActive, "LuckyBall: The current season is over");
+        require(block.timestamp > attendances[_seasonId][owner].timestamp + 86400, "LuckyBall: not passed 24 hours");
+        attendances[_seasonId][owner].count++;
+    }
+
+    function attendSeason() external {
+        _attendSeason(msg.sender);
+    }
+
+    function relayAttendSeason (
+        address user,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s) 
+        external {
+            
+        require(deadline >= block.timestamp, "LuckyBall: expired deadline");
+        require(verifySig(user, deadline, _nonces[user], v, r, s), "LuckyBall: user sig does not match");
+        
+        _nonces[user]++;
+        _attendSeason(user);
     }
 }

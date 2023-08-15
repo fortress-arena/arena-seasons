@@ -412,6 +412,6 @@ describe("LuckyBall core", function () {
     const contract2 = ContractV2.attach(await contract.getAddress());
     expect(await contract2.getAddress()).to.equal(await contract.getAddress());
     expect(await contract2.getVersion()).to.equal("2");
-  });  
-
+  });
+  
 });
