@@ -76,7 +76,7 @@ describe("LuckyBall core", function () {
   async function sigFixture() {
     let [ name, version, chainId, verifyingContract ] = await contract.getDomainInfo();
     chainId = parseInt(chainId);
-    let deadline = Math.floor(Date.now() / 1000) + 60*60*24; //1day
+    let deadline = Math.floor(Date.now() / 1000) + 60*60*24*2; //2day
     let nonce = parseInt(await (contract.nonces(user1.address)));
     let domain = { name, version, chainId, verifyingContract };
     let types = { Relay: [{name: 'owner', type: 'address'},
@@ -413,5 +413,29 @@ describe("LuckyBall core", function () {
     expect(await contract2.getAddress()).to.equal(await contract.getAddress());
     expect(await contract2.getVersion()).to.equal("2");
   });
-  
+
+  it("/realyAttendSeason() should work", async function () { 
+    let { deadline, nonce, sig, contract } = await loadFixture(sigFixture);
+    await contract.connect(owner).startSeason();
+    let season = await contract.seasons(1);
+
+    await expect(contract.connect(user1).relayAttendSeason(
+      user1.address, 
+      deadline,
+      sig.v,
+      sig.r,
+      sig.s))
+      .to.emit(contract, "AttendedSeason")
+      .withArgs(1, user1.address, 1);
+    expect((await contract.getAttendance(1, user1.address)).length).to.equal(1);
+    time.increaseTo(Number(season[6]) + 60*60*24 + 1);
+    await expect(contract.connect(user1).attendSeason())
+      .to.emit(contract, "AttendedSeason")
+      .withArgs(1, user1.address, 2);
+    expect((await contract.getAttendance(1, user1.address)).length).to.equal(2);
+
+    await expect(contract.connect(user1).attendSeason())
+      .to.be.revertedWithCustomError(contract, "AttendedSameday");
+  });  
+   
 });

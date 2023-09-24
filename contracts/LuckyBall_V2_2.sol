@@ -58,6 +58,7 @@ abstract contract VRFConsumerBaseV2Upgradeable is Initializable {
 }
 
 contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
+    error AttendedSameday();
 
     uint32 private _ballId;
     uint16 private _seasonId;
@@ -79,6 +80,7 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
         uint32 winningBallId;
         uint32 winningCode;
         bool isActive;
+        uint32 startTime;
     }
 
     BallGroup[] public ballGroups;
@@ -113,6 +115,7 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
     mapping(address => mapping(uint16 => uint32)) public newRevealPos; //user addr => seasonId => newRevalPos
     //mapping(address => mapping(uint16 => uint32)) public userBallCounts; //userAddr => seasonId => count
     mapping(uint32 => uint32[]) public ballPosByRevealGroup; // revealGroupId => [ballPos]
+    mapping(uint16 => mapping(address => uint8[])) public attendances; //seasonId => user addr => [attended days]
 
     event BallIssued(uint16 seasonId, address indexed recipient, uint32 qty, uint32 endBallId);
     event RevealRequested(uint16 seasonId, uint32 revealGroupId, address indexed requestor, uint32 endBallId);
@@ -122,6 +125,7 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
     event WinnerPicked(uint16 indexed seasonId, uint32 ballId);
     event OwnerTransfered(address owner);
     event SetOperator(address operator);
+    event AttendedSeason(uint16 seasonId, address user, uint8 day);
 
     modifier onlyOperators() {
         require(_operator == msg.sender || _owner == msg.sender, "LuckyBall: caller is not the operator address!");
@@ -259,7 +263,8 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
                         0, 
                         0,
                         generateWinningCode(),
-                        true);
+                        true,
+                        uint32(block.timestamp));
 
         emit SeasonStarted(_seasonId);
     }
@@ -338,10 +343,11 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
     }
 
     function _requestReveal(address _addr) internal returns (bool) {
+        require(seasons[_seasonId].isActive, "LuckyBall: The current season is over");
         uint32[] memory myGroups = userBallGroups[_addr][_seasonId];
         uint32 myLength = uint32(myGroups.length);
-        uint32 newPos = newRevealPos[_addr][_seasonId];
         require(myLength > 0, "LuckyBall: No balls to reveal");
+        uint32 newPos = newRevealPos[_addr][_seasonId];
         require(myLength > newPos, "LuckyBall: No new balls to reveal");
         unchecked {
             for (uint256 i=newPos; i<myLength; ++i) {
@@ -355,7 +361,7 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
             revealNeeded = true;
         }
         emit RevealRequested(_seasonId, _revealGroupId, _addr, ballGroups[myGroups[myLength-1]].endBallId);
-        return false;
+        return true;
     }
 
     function getRevealGroup(uint32 ballId_) public view returns (uint32) {
@@ -485,18 +491,26 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
     }
 
     function endSeason() external onlyOperators() returns (bool) {
-        require(ballGroups.length > 0, "LuckyBall: No balls issued yet");
+        //require(ballGroups.length > 0, "LuckyBall: No balls issued yet");
+        Season memory season = seasons[_seasonId]; 
+        require(season.isActive, "LuckyBall: This season already eneded");
+
+        if (ballCount >= season.startBallId) {
+            season.endBallId = ballCount;
+        } else { //no season balls
+            season.startBallId = 0;
+            season.endBallId = 0;
+        }
+        season.isActive = false;
+        seasons[_seasonId] = season;
+        emit SeasonEnded(_seasonId);
+
         if (revealNeeded) {
             requestRevealGroupSeed();
         }
-        if (ballCount >= seasons[_seasonId].startBallId) {
-            seasons[_seasonId].endBallId = ballCount;
+        if (ballCount >= season.startBallId) {
             requestRandomSeed(true); 
-        } else { //no season balls
-            seasons[_seasonId].startBallId = 0;
-            seasons[_seasonId].endBallId = 0;
-        }
-        seasons[_seasonId].isActive = false;
+        }        
         return true;
     }
 
@@ -533,7 +547,6 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
         uint256 seasonBallCount = uint256(season.endBallId - season.startBallId + 1);
         season.winningBallId = season.startBallId + uint32(randSeed % seasonBallCount);
         emit WinnerPicked(_seasonId, season.winningBallId); 
-        emit SeasonEnded(_seasonId);
     }    
 
     function fulfillRandomWords(
@@ -547,5 +560,41 @@ contract LuckyBallV2 is VRFConsumerBaseV2Upgradeable{
         } else {
             setRevealGroupSeed(seed);
         }
+    }
+
+    function _attendSeason(address user) internal {
+        Season memory season = seasons[_seasonId];
+        require(season.isActive, "LuckyBall: The current season is over");
+        uint8 day = uint8(1 + (season.startTime - block.timestamp)/1 days);
+        uint8[] memory attendedDays = attendances[_seasonId][user];
+        if (attendedDays.length == 0) {
+            attendances[_seasonId][user].push(day);
+        } else {
+            if (day > attendedDays[attendedDays.length-1]) {
+                attendances[_seasonId][user].push(day);
+            } else {
+                revert AttendedSameday();
+            }
+        }
+        emit AttendedSeason(_seasonId, user, day);
+    }
+
+    function attendSeason() external {
+        _attendSeason(msg.sender);
+    }
+
+    function relayAttendSeason (
+        address user,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s) 
+        external {
+            
+        require(deadline >= block.timestamp, "LuckyBall: expired deadline");
+        require(verifySig(user, deadline, _nonces[user], v, r, s), "LuckyBall: user sig does not match");
+        
+        _nonces[user]++;
+        _attendSeason(user);
     }
 }

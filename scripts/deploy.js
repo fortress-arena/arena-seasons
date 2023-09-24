@@ -17,8 +17,24 @@ const getFeeOption = async () => {
   const data =  (await axios(gasUrls[hre.network.name])).data
   return {
     maxFeePerGas: ethers.parseUnits(Math.ceil(data.fast.maxFee).toString(), 'gwei'),
-    maxPriorityFeePerGas: ethers.parseUnits(Math.ceil(data.standard.maxPriorityFee).toString(), 'gwei')
+    maxPriorityFeePerGas: ethers.parseUnits(Math.ceil(data.fast.maxPriorityFee).toString(), 'gwei')
   }
+}
+
+//wait for n blocks
+const waitBlocks = async (n) => {
+  const provider = ethers.provider;
+  const currentBlock = await provider.getBlockNumber()
+  const targetBlock = currentBlock + n
+  return new Promise((resolve, reject) => {
+    provider.on("block", (blockNumber) => {
+      console.log("blockNumber: ", blockNumber)
+      if (blockNumber == targetBlock) {
+        provider.removeAllListeners("block");
+        resolve();
+      }
+    })
+  })
 }
 
 async function main() {
@@ -45,6 +61,7 @@ async function main() {
   console.log('proxy contract deployed at ', await proxy.getAddress());
   const implementation = await beacon.implementation()
   console.log('implementation contract deployed at ', implementation);
+  await waitBlocks(5)
   if (hre.network.name != 'hardhat') {
     await hre.run("verify:verify", { address: implementation });
   }

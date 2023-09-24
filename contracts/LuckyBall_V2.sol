@@ -58,6 +58,7 @@ abstract contract VRFConsumerBaseV2Upgradeable is Initializable {
 }
 
 contract LuckyBall is VRFConsumerBaseV2Upgradeable{
+    error AttendedSameday();
 
     uint32 private _ballId;
     uint16 private _seasonId;
@@ -79,11 +80,7 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
         uint32 winningBallId;
         uint32 winningCode;
         bool isActive;
-    }
-
-    struct Attendance {
-        uint8 count;
-        uint32 timestamp;
+        uint32 startTime;
     }
 
     BallGroup[] public ballGroups;
@@ -118,7 +115,7 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
     mapping(address => mapping(uint16 => uint32)) public newRevealPos; //user addr => seasonId => newRevalPos
     //mapping(address => mapping(uint16 => uint32)) public userBallCounts; //userAddr => seasonId => count
     mapping(uint32 => uint32[]) public ballPosByRevealGroup; // revealGroupId => [ballPos]
-    mapping(uint16 => mapping(address => Attendance)) public attendances; //seasonId => user addr => last timestamp
+    mapping(uint16 => mapping(address => uint8[])) public attendances; //seasonId => user addr => [attended days]
 
     event BallIssued(uint16 seasonId, address indexed recipient, uint32 qty, uint32 endBallId);
     event RevealRequested(uint16 seasonId, uint32 revealGroupId, address indexed requestor, uint32 endBallId);
@@ -128,6 +125,7 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
     event WinnerPicked(uint16 indexed seasonId, uint32 ballId);
     event OwnerTransfered(address owner);
     event SetOperator(address operator);
+    event AttendedSeason(uint16 seasonId, address user, uint8 day);
 
     modifier onlyOperators() {
         require(_operator == msg.sender || _owner == msg.sender, "LuckyBall: caller is not the operator address!");
@@ -265,7 +263,8 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
                         0, 
                         0,
                         generateWinningCode(),
-                        true);
+                        true,
+                        uint32(block.timestamp));
 
         emit SeasonStarted(_seasonId);
     }
@@ -362,7 +361,7 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
             revealNeeded = true;
         }
         emit RevealRequested(_seasonId, _revealGroupId, _addr, ballGroups[myGroups[myLength-1]].endBallId);
-        return false;
+        return true;
     }
 
     function getRevealGroup(uint32 ballId_) public view returns (uint32) {
@@ -496,12 +495,8 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
         Season memory season = seasons[_seasonId]; 
         require(season.isActive, "LuckyBall: This season already eneded");
 
-        if (revealNeeded) {
-            requestRevealGroupSeed();
-        }
         if (ballCount >= season.startBallId) {
             season.endBallId = ballCount;
-            requestRandomSeed(true); 
         } else { //no season balls
             season.startBallId = 0;
             season.endBallId = 0;
@@ -509,6 +504,13 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
         season.isActive = false;
         seasons[_seasonId] = season;
         emit SeasonEnded(_seasonId);
+
+        if (revealNeeded) {
+            requestRevealGroupSeed();
+        }
+        if (ballCount >= season.startBallId) {
+            requestRandomSeed(true); 
+        }        
         return true;
     }
 
@@ -560,10 +562,24 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
         }
     }
 
-    function _attendSeason(address owner) internal {
-        require(seasons[_seasonId].isActive, "LuckyBall: The current season is over");
-        require(block.timestamp > attendances[_seasonId][owner].timestamp + 86400, "LuckyBall: not passed 24 hours");
-        attendances[_seasonId][owner].count++;
+    function _attendSeason(address user) internal {
+        Season memory season = seasons[_seasonId];
+        require(season.isActive, "LuckyBall: The current season is over");
+        uint8 day;
+        unchecked {
+            day = uint8(1 + (block.timestamp - season.startTime )/1 days);
+            uint8[] memory attendedDays = attendances[_seasonId][user];
+            if (attendedDays.length == 0) {
+                attendances[_seasonId][user].push(day);
+            } else {
+                if (day > attendedDays[attendedDays.length-1]) {
+                    attendances[_seasonId][user].push(day);
+                } else {
+                    revert AttendedSameday();
+                }
+            }
+        }
+        emit AttendedSeason(_seasonId, user, day);
     }
 
     function attendSeason() external {
@@ -583,5 +599,10 @@ contract LuckyBall is VRFConsumerBaseV2Upgradeable{
         
         _nonces[user]++;
         _attendSeason(user);
+    }
+
+    function getAttendance(uint16 seasonId, address user) external view returns(uint8[] memory) {
+        uint8[] memory attendaceRecord = attendances[seasonId][user];
+        return attendaceRecord;
     }
 }
